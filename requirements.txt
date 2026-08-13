@@ -1,0 +1,24 @@
+# MY ALGO — Angel One Edition
+# Install: pip install -r requirements.txt
+
+# Angel One SmartAPI SDK
+smartapi-python
+
+# Web framework
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Date utilities
+python-dateutil>=2.8.2
+
+# Environment variables (optional)
+python-dotenv>=1.0.0
+
+# Angel One only — no other broker SDKs required
+
+# TOTP auto-login support
+pyotp>=2.8.0
+pytz

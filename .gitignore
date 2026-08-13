@@ -1,0 +1,10 @@
+config.json
+__pycache__/
+*.pyc
+*.log
+.last_update_check
+auth_state.json
+pnl_history.json
+scrip_cache/
+cert.pem
+key.pem
