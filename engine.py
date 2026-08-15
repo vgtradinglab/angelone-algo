@@ -508,14 +508,25 @@ def nearest_expiry_from_broker(broker, instrument: str,
         return all_exps_date[-1][0]   # return last known
 
     if expiry_type == "weekly":
-        # Nearest available expiry (could be this week or monthly — whatever exists)
+        # Nearest expiry from Angel One data — no day calculation
         return future[0][0]
 
     elif expiry_type == "next_weekly":
-        # Second nearest available expiry
+        # Second nearest expiry from Angel One data
+        # If second expiry is in same month as first — it is a genuine next weekly
+        # If not — fallback to monthly (last of current month)
         if len(future) >= 2:
-            return future[1][0]
-        return future[0][0]   # fallback: return nearest if only one exists
+            first_exp  = future[0][1]
+            second_exp = future[1][1]
+            if second_exp.month == first_exp.month:
+                return future[1][0]  # genuine next weekly — same month
+            else:
+                # No next weekly in same month — fallback to monthly
+                this_month = [(s,d) for s,d in future
+                              if d.year==today.year and d.month==today.month]
+                if this_month:
+                    return this_month[-1][0]
+        return future[0][0]  # absolute fallback
 
     elif expiry_type == "monthly":
         # The expiry whose date is the LAST one in the current calendar month.
