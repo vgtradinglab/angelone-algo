@@ -320,7 +320,7 @@ def midnight_reset():
 
             # 1. Bot logs older than 7 days
             cutoff = (_dt.now() - _td(days=3)).strftime("%Y-%m-%d")
-            for f in glob.glob("/home/ubuntu/zerodha-algo/myalgo_*.log"):
+            for f in glob.glob("/home/ubuntu/angelone-algo/myalgo_*.log"):
                 day = _os.path.basename(f).replace("myalgo_","").replace(".log","")
                 if day < cutoff:
                     _os.remove(f)
@@ -559,7 +559,7 @@ def _fetch_index_prev_close():
     if not engine_ref or not engine_ref.broker:
         return
     # Prev-close fetch uses Kotak-specific quotes() API. Skip silently for
-    # Zerodha (KiteConnect doesn't expose pdc the same way; spot prices still
+    # AngelOne (spot prices still
     # tick via WS so % change just won't render until we wire historical().)
     if not hasattr(engine_ref.broker, "_client"):
         return
@@ -596,7 +596,7 @@ def _fetch_index_prev_close():
 @app.route("/api/instruments")
 def api_instruments():
     """
-    Return the live instrument list built from Zerodha's CSV data.
+    Return the live instrument list built from AngelOne instrument master.
     Used by the UI to populate the INDEX dropdown dynamically.
     Returns a sorted list of instrument names with their key properties.
     """
@@ -731,23 +731,14 @@ def api_state():
         "sensex_atm"        : (round(sensex_price/100)*100) if sensex_price>0 else 0,
         # saved config for pre-filling modals
         "saved_broker"      : {
-            "broker"       : config_ref.get("broker","kotak") if config_ref else "kotak",
+            "broker"       : config_ref.get("broker","angelone") if config_ref else "angelone",
             "api_key"      : bc.get("api_key",""),
-            "api_secret"   : bc.get("api_secret",""),
-            "user_id"      : bc.get("user_id",""),
+            "client_code"  : bc.get("client_code",""),
             "password"     : bc.get("password",""),
             "totp_key"     : bc.get("totp_key",""),
             "static_ip"    : bc.get("static_ip",""),
-            "redirect_url" : bc.get("redirect_url","http://127.0.0.1/zerodha/callback"),
-            "has_token"    : bool(bc.get("access_token") or bc.get("request_token")),
-            "token_date"   : bc.get("token_date",""),
-            "consumer_key" : bc.get("consumer_key",""),
-            "mobile"       : bc.get("mobile",""),
-            "ucc"          : bc.get("ucc",""),
-            "mpin"         : bc.get("mpin",""),
-            "totp_secret"  : bc.get("totp_secret",""),
-            "server_ip"    : config_ref.get("server_ip","") if config_ref else "",
-            "algo_name"    : config_ref.get("algo_name","") if config_ref else "",
+            "algo_name"    : config_ref.get("algo_name","My Algo") if config_ref else "My Algo",
+            "has_token"    : False,
         },
         "basket_target"     : _basket_target,
         "basket_sl"         : _basket_sl,
@@ -779,7 +770,7 @@ def _is_market_open() -> tuple:
     """
     Returns (is_open: bool, market: str, reason: str).
     NOTE: Day-of-week check removed — unreliable (special sessions on Sat/Sun,
-    Budget Day etc.). Holiday check is handled by engine.py using Zerodha
+    Budget Day etc.). Holiday check is handled by engine.py.
     kite.holidays() API after login. This function only checks time window.
     """
     from datetime import datetime, time
@@ -840,7 +831,7 @@ def api_start_algo():
             _broker = (config_ref.get("broker","kotak") if config_ref else "kotak").title()
             _broker_name = {
                 "kotak"  : "Kotak Neo",
-                "zerodha": "Zerodha",
+                "angelone": "AngelOne",
                 "dhan"   : "Dhan",
                 "upstox" : "Upstox",
                 "angel"  : "Angel One",
@@ -879,7 +870,7 @@ def api_start_algo():
         except Exception as _e:
             _log.warning(f"Prev close fetch: {_e}")
 
-        # Refresh INSTRUMENTS from live Zerodha data
+        # Refresh INSTRUMENTS from live AngelOne data
         try:
             from engine import refresh_instruments_from_broker
             refresh_instruments_from_broker(engine_ref.broker)
@@ -902,12 +893,8 @@ def api_start_algo():
         else:
             _log.info("No enabled strategies to load.")
 
-        # Save access_token after successful login
-        if engine_ref and hasattr(engine_ref.broker, "get_access_token"):
-            tok = engine_ref.broker.get_access_token()
-            if tok:
-                config_ref.setdefault("broker_creds", {})["access_token"] = tok
-                save_config()
+        # AngelOne — tokens managed internally by adapter
+        save_config()
 
         add_log("ALGO", "MAIN",
                 f"Algo started | {len(enabled)} strategies | "
@@ -1260,14 +1247,13 @@ def api_toggle_strategy(sid):
                     s_exch_chk = "MCX" if is_mcx_chk else ("BSE" if info_chk.get("exchange","") in ("BSE","BFO") else "NSE")
                     today_chk  = _date.today().isoformat()
 
-                    # Get kite object — from broker if logged in, else skip
-                    _kite = None
+                    # AngelOne — no kite object needed
                     if engine_ref and engine_ref.broker:
-                        _kite = getattr(engine_ref.broker, '_kite', None)
+                        pass
 
                     if False:  # kite.holidays() not available — placeholder for future holiday check
                         pass
-                    if _kite is not None and False:
+                    if False:  # AngelOne — no kite object
                         hname = ""
                         if False:
                                 # Send Telegram alert
@@ -1323,7 +1309,7 @@ def api_toggle_strategy(sid):
 
                             _is_holiday = False
                             _hname = ""
-                            # kite.holidays() not available in Zerodha API.
+                            # holiday check not available — placeholder
                             # Holiday detection will be implemented after testing on actual holiday.
 
                             if _is_holiday:
@@ -1471,10 +1457,7 @@ def api_save_broker():
     # credentials
     bc = config_ref.setdefault("broker_creds", {})
     ALL_BROKER_FIELDS = [
-        "api_key","api_secret","user_id","password","totp_key",
-        "redirect_url","static_ip","consumer_key","mobile","ucc",
-        "totp_secret","client_id","access_token_dhan",
-        "upstox_api_key","upstox_api_secret",
+        "api_key","client_code","password","totp_key",
         "angel_api_key","angel_client_id","angel_password","angel_totp_key",
         "totp","pin","app_id","app_secret","resecret",
     ]
@@ -1496,14 +1479,14 @@ def api_save_broker():
     save_config()
     if engine_ref:
         engine_ref.config["broker_creds"] = dict(bc)
-        engine_ref.config["broker"] = config_ref.get("broker","zerodha")
+        engine_ref.config["broker"] = config_ref.get("broker","angelone")
     # hot-reload credentials into running engine
     if engine_ref and engine_ref.notifier:
         engine_ref.notifier.cfg.update(config_ref)
     return jsonify({"ok": True, "msg": "Broker config saved."})
 
-# ── /api/zerodha/save_token ──────────────────────────────────
-@app.route("/api/zerodha/save_token", methods=["POST"])
+# ── /api/zerodha/save_token — NOT USED IN ANGELONE ──────────
+@app.route("/api/zerodha/save_token_disabled", methods=["POST"])
 def api_save_token():
     err = _require_admin()
     if err: return err
@@ -1512,15 +1495,7 @@ def api_save_token():
     if not req_token:
         return jsonify({"ok": False, "msg": "No request_token provided."})
     try:
-        from kiteconnect import KiteConnect
-        bc = config_ref.get("broker_creds", {})
-        kite = KiteConnect(api_key=bc.get("api_key",""))
-        session_data = kite.generate_session(req_token, api_secret=bc.get("api_secret",""))
-        bc["access_token"] = session_data["access_token"]
-        import datetime
-        bc["token_date"] = str(datetime.date.today())
-        config_ref["broker_creds"] = bc
-        save_config()
+        pass  # AngelOne — not used
         if engine_ref and engine_ref.broker:
             engine_ref.broker._access_token = session_data["access_token"]
             engine_ref.broker._kite.set_access_token(session_data["access_token"])
@@ -1616,8 +1591,8 @@ def api_basket_alert():
         engine_ref.notifier.telegram(msg)
     return jsonify({"ok": True})
 
-# ── /zerodha/callback ──────────────────────────────────────
-@app.route("/zerodha/callback")
+# ── /zerodha/callback — NOT USED IN ANGELONE ───────────────
+@app.route("/zerodha/callback_disabled")
 def zerodha_callback():
     request_token = request.args.get("request_token", "")
     status        = request.args.get("status", "")
@@ -1641,14 +1616,14 @@ def zerodha_callback():
     .btn{{background:#10b981;color:#fff;border:none;padding:10px 24px;
     border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}}
     </style></head><body><div class="box">
-    <h2>&#10003; Zerodha Login Successful</h2>
+    <h2>&#10003; AngelOne Login Successful</h2>
     <p>Token saved. Return to dashboard and click <b>Start Algo</b>.</p>
     <div class="token">{request_token}</div>
     <button class="btn" onclick="window.close()">Close Window</button>
     <script>setTimeout(()=>window.close(),3000)</script>
     </div></body></html>"""
 
-@app.route("/api/zerodha/login_url")
+@app.route("/api/zerodha/login_url_disabled")
 def zerodha_login_url():
     err = _require_admin()
     if err: return err
@@ -1657,13 +1632,12 @@ def zerodha_login_url():
     if not api_key:
         return jsonify({"ok":False,"url":"","msg":"Enter API Key in Broker Setup first"})
     try:
-        from kiteconnect import KiteConnect
-        url = KiteConnect(api_key=api_key).login_url()
+        url = ""  # AngelOne — not used
         return jsonify({"ok":True,"url":url})
     except Exception as e:
         return jsonify({"ok":False,"url":"","msg":str(e)})
 
-@app.route("/api/zerodha/connect", methods=["POST"])
+@app.route("/api/zerodha/connect_disabled", methods=["POST"])
 def zerodha_connect():
     data = request.get_json() or {}
     request_token = data.get("request_token","").strip()
@@ -1677,7 +1651,7 @@ def zerodha_connect():
         bc["access_token"]  = ""
         bc["token_date"]    = datetime.now(_ist).strftime("%Y-%m-%d")
         save_config()
-    add_log("BROKER","MAIN","Zerodha token saved. Click Start Algo.")
+    add_log("BROKER","MAIN","AngelOne token saved. Click Start Algo.")
     return jsonify({"ok":True,"msg":"Token saved. Click Start Algo to begin."})
 
 
@@ -1858,10 +1832,9 @@ def start_dashboard(port: int):
 def api_setup_status():
     """Check if first-time setup is complete."""
     bc = config_ref.get("broker_creds", {}) if config_ref else {}
-    zerodha_ok = all([
+    angelone_ok = all([
         bc.get("api_key","").strip(),
-        bc.get("api_secret","").strip(),
-        bc.get("user_id","").strip(),
+        bc.get("client_code","").strip(),
         bc.get("password","").strip(),
         bc.get("totp_key","").strip(),
     ])
@@ -1870,8 +1843,8 @@ def api_setup_status():
         config_ref.get("telegram_chat_id","").strip() if config_ref else "",
     ])
     return jsonify({
-        "setup_complete": zerodha_ok and telegram_ok,
-        "zerodha_ok": zerodha_ok,
+        "setup_complete": angelone_ok and telegram_ok,
+        "angelone_ok": angelone_ok,
         "telegram_ok": telegram_ok,
     })
 
@@ -1881,8 +1854,8 @@ def api_setup_save():
     """Save first-time setup credentials."""
     data = request.get_json() or {}
     bc = config_ref.setdefault("broker_creds", {})
-    # Zerodha fields
-    for k in ["api_key","api_secret","user_id","password","totp_key"]:
+    # AngelOne fields
+    for k in ["api_key","client_code","password","totp_key"]:
         if data.get(k,"").strip():
             bc[k] = data[k].strip()
     # Telegram fields
@@ -1891,10 +1864,10 @@ def api_setup_save():
             config_ref[k] = data[k].strip()
     save_config()
     # Check if complete
-    zerodha_ok = all([bc.get(k,"").strip() for k in ["api_key","api_secret","user_id","password","totp_key"]])
+    angelone_ok = all([bc.get(k,"").strip() for k in ["api_key","client_code","password","totp_key"]])
     telegram_ok = all([config_ref.get(k,"").strip() for k in ["telegram_token","telegram_chat_id"]])
-    if not zerodha_ok:
-        return jsonify({"ok": False, "msg": "Please complete Zerodha setup"})
+    if not angelone_ok:
+        return jsonify({"ok": False, "msg": "Please complete AngelOne setup"})
     if not telegram_ok:
         return jsonify({"ok": False, "msg": "Please complete Telegram setup"})
     return jsonify({"ok": True, "msg": "Setup complete! Redirecting to login..."})

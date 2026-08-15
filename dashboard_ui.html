@@ -1433,17 +1433,17 @@ body{
       <!-- Status messages -->
       <div id="setupMsg" style="font-size:12px;color:#4fc3f7;text-align:center;margin-bottom:16px;min-height:18px;font-weight:600"></div>
 
-      <!-- Zerodha Section -->
+      <!-- AngelOne Section -->
       <div style="margin-bottom:20px">
-        <div style="font-size:11px;color:#4fc3f7;font-weight:700;letter-spacing:2px;margin-bottom:12px">🔑 ZERODHA SETUP</div>
+        <div style="font-size:11px;color:#4fc3f7;font-weight:700;letter-spacing:2px;margin-bottom:12px">🔑 ANGELONE SETUP</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <input id="setup-api-key" type="text" placeholder="API Key" autocomplete="off"
             style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:13px;color:#fff;outline:none;width:100%;box-sizing:border-box">
-          <input id="setup-api-secret" type="password" placeholder="API Secret" autocomplete="off"
+          <input id="setup-api-secret" type="password" placeholder="API Secret" autocomplete="off" style="display:none"
             style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:13px;color:#fff;outline:none;width:100%;box-sizing:border-box">
-          <input id="setup-user-id" type="text" placeholder="User ID (e.g. DV2571)" autocomplete="off"
+          <input id="setup-user-id" type="text" placeholder="Client Code (e.g. AACK123456)" autocomplete="off"
             style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:13px;color:#fff;outline:none;width:100%;box-sizing:border-box">
-          <input id="setup-password" type="password" placeholder="Zerodha Password" autocomplete="off"
+          <input id="setup-password" type="password" placeholder="AngelOne PIN" autocomplete="off"
             style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:13px;color:#fff;outline:none;width:100%;box-sizing:border-box">
           <input id="setup-totp" type="text" placeholder="TOTP Secret Key" autocomplete="off"
             style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:13px;color:#fff;outline:none;width:100%;box-sizing:border-box">
@@ -1559,7 +1559,7 @@ body{
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMobileSidebar()"></div>
 <div class="rm-sidebar" id="rmSidebar">
   <div class="rm-sidebar-hdr">
-    <h3>DIY Strategy Templates</h3><!-- v2.1-zerodha -->
+    <h3>DIY Strategy Templates</h3><!-- v2.1-angelone -->
     <p>Click to add instantly</p>
     <div class="rm-sym-row">
       <span class="rm-sym-lbl">Symbol:</span>
@@ -2157,22 +2157,22 @@ body{
     <div class="modal-tabs">
       <button class="mtab on" id="mt-broker" onclick="swTab('broker')">Broker</button>
       <button class="mtab" id="mt-alert" onclick="swTab('alert')">Alerts &amp; Telegram</button>
-      <button class="mtab" id="mt-token" onclick="swTab('token')">&#128273; First Time Setup</button>
+      <button class="mtab" id="mt-token" onclick="swTab('token')" style="display:none">&#128273; First Time Setup</button>
     </div>
     <div class="mcon on" id="mc-broker">
       <div class="fsec">Algo Name</div>
       <div class="fg fw"><label class="flbl">Your Algo Name</label>
-        <input class="fin fw" id="algoNameInp" type="text" placeholder="e.g. MY ALGO, VGAlgoLab, GK Algo" autocomplete="off"></div>
+        <input class="fin fw" id="algoNameInp" type="text" placeholder="My Algo" autocomplete="off"></div>
       <div class="fdiv"></div>
-      <div class="fsec">&#128200; Zerodha Kite Connect</div>
+      <div class="fsec">&#128200; AngelOne SmartAPI</div>
       <div class="fdiv"></div>
       <!-- API CREDENTIALS -->
       <div class="fsec">API Credentials</div>
       <div class="fg fw"><label class="flbl">API Key</label>
         <input class="fin fw" id="zApiKey" type="text" placeholder="Your Kite Connect API Key"></div>
-      <div class="fg fw"><label class="flbl">API Secret</label>
-        <input class="fin fw" id="zApiSecret" type="text" placeholder="Your Kite Connect API Secret"></div>
-      <div class="fg fw"><label class="flbl">Zerodha User ID</label>
+      <div class="fg fw" style="display:none"><label class="flbl">API Secret</label>
+        <input class="fin fw" id="zApiSecret" type="text" placeholder="Not required for AngelOne"></div>
+      <div class="fg fw"><label class="flbl">Client Code</label>
         <input class="fin fw" id="zUserId" type="text" placeholder="e.g. DV2571"></div>
 
       <div class="fdiv"></div>
@@ -2182,14 +2182,14 @@ body{
       <div class="fnote" style="margin-bottom:8px">Bot will login automatically every morning. No manual action needed!</div>
       <div class="fg fw">
         <label class="flbl">Password</label>
-        <input class="fin fw" id="zPassword" type="text" placeholder="Your Zerodha login password" autocomplete="off">
+        <input class="fin fw" id="zPassword" type="text" placeholder="Your AngelOne PIN" autocomplete="off">
       </div>
       <div class="fg fw">
         <label class="flbl">TOTP Secret Key</label>
-        <input class="fin fw" id="zTotpKey" type="text" placeholder="32-character TOTP secret from Zerodha" autocomplete="off">
+        <input class="fin fw" id="zTotpKey" type="text" placeholder="TOTP secret key from AngelOne SmartAPI portal" autocomplete="off">
       </div>
       <div class="fnote" id="totpHint" style="margin-bottom:4px">
-        &#8505; Get TOTP: kite.zerodha.com &#8594; My Profile &#8594; Security &#8594; Reset TOTP
+        &#8505; Get TOTP: smartapi.angelbroking.com &#8594; Enable TOTP
       </div>
 
       <div class="fdiv"></div>
@@ -2197,12 +2197,12 @@ body{
       <!-- ── STATIC IP ───────────────────────────────────── -->
       <div class="fsec">Static IP (SEBI Compliance)</div>
       <div class="fg fw">
-        <label class="flbl">AWS Elastic IP (whitelist in Kite Connect portal)</label>
+        <label class="flbl">Static IP</label>
         <input class="fin fw" id="zStaticIp" type="text" placeholder="e.g. 13.204.28.13">
       </div>
 
       <div class="fdiv"></div>
-      <button class="msave" onclick="saveBrokerZerodha()">Save Broker Config</button>
+      <button class="msave" onclick="saveBrokerAngelOne()">Save Broker Config</button>
     </div>
         <div class="mcon" id="mc-alert">
       <div class="fsec">&#128241; Telegram Alerts</div>
@@ -2259,9 +2259,9 @@ body{
       <div class="fsec">&#128273; First Time Setup — Generate Access Token</div>
       <div class="fnote" style="margin-bottom:8px">Required only ONCE when setting up for the first time. After this, bot auto-logins daily.</div>
       <div class="fdiv"></div>
-      <div class="fsec">Step 1 — Open Zerodha Login URL</div>
-      <div class="fnote" style="margin-bottom:8px">Click the button below to open Zerodha login page. Login with your Zerodha credentials + Google Authenticator OTP.</div>
-      <button onclick="openZerodhaLogin()" style="width:100%;padding:10px;background:var(--bl);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">&#128279; Open Zerodha Login Page</button>
+      <div class="fsec" style="display:none">Step 1 — Not used in AngelOne</div>
+      
+      
       <div class="fdiv"></div>
       <div class="fsec">Step 2 — Paste Request Token</div>
       <div class="fnote" style="margin-bottom:8px">After login, browser shows "This site can't be reached" — copy the full URL from address bar and paste below, OR paste only the request_token value.</div>
@@ -2337,7 +2337,7 @@ function fetchAndPopulateInstruments(currentVal){
     if(!d.ok || !d.instruments || !d.instruments.length) return;
     // Rebuild _instrMeta from live data, but preserve has_options from
     // static fallback if live data says false (happens on expiry day when
-    // Zerodha hasn't yet uploaded next-month option contracts).
+    // Next-month option contracts may not be available yet.
     _instrMeta = {};
     d.instruments.forEach(i=>{
       const staticMeta = _STATIC_INSTR_META[i.name] || {};
@@ -2705,7 +2705,8 @@ function _updateAlgoName(n){
   document.title=n;
 }
 function openZerodhaLogin(){
-  fetch('/api/zerodha/login_url').then(r=>r.json()).then(d=>{
+  // Not used in AngelOne
+  return; fetch('/api/zerodha/login_url_disabled').then(r=>r.json()).then(d=>{
     if(d.url) window.open(d.url,'_blank');
     else alert('Save API Key in Broker Setup first.');
   });
@@ -2719,7 +2720,7 @@ function saveRequestToken(){
   var match = inp.match(/request_token=([A-Za-z0-9]+)/);
   if(match) token = match[1];
   msg.style.color='var(--tx2)'; msg.textContent='Saving token...';
-  fetch('/api/zerodha/save_token',{method:'POST',
+  fetch('/api/zerodha/save_token_disabled',{method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({request_token:token})})
   .then(r=>r.json()).then(d=>{
@@ -3820,7 +3821,7 @@ function addLeg(){
   // MCX option instruments default to CE; pure-FUT MCX defaults to FUT
   const defType = isMCXOpt ? (currentSegment==='Futures'?'FUT':'CE') : (isMCX?'FUT':'CE');
   const defExpiry = isMCX ? 'Monthly' : 'Weekly';
-  // Default product: NRML for non-energy MCX options (Zerodha blocks MIS for these)
+  // Default product: NRML for non-energy MCX options
   const _mcxEnergyList=['NATURALGAS','NATGASMINI','CRUDEOIL','CRUDEOILM'];
   const defProd = (isMCX && !isMCXOpt===false && !_mcxEnergyList.includes(idx.toUpperCase()) && defType!=='FUT')
     ? 'NRML' : 'MIS';
@@ -3879,13 +3880,13 @@ function renderLegs(){
     const bsCls=l.action==='BUY'?'buy':'sell';
     const cpCls=l.type==='CE'?'ce':'pe';
     const mnCls=l.prod==='MIS'?'mis':'nrml';
-    // MCX non-energy options: Zerodha blocks MIS — warn user
+    // MCX non-energy options: MIS not allowed — warn user
     const _mcxEnergy=['NATURALGAS','NATGASMINI','CRUDEOIL','CRUDEOILM'];
     const idx=document.getElementById('csIdx')?document.getElementById('csIdx').value:'';
     const _meta=_getInstr(idx);
     const isMcxNonEnergyOpt=_meta.is_mcx && !isFut && !_mcxEnergy.includes(idx.toUpperCase());
     const misMcxWarn=isMcxNonEnergyOpt && l.prod==='MIS'
-      ?'<span title="Zerodha blocks MIS for non-energy MCX options. Switch to NRML." style="color:var(--yw);font-size:9px;font-weight:800;cursor:help;margin-left:3px">⚠ Use NRML</span>'
+      ?'<span title="MIS not allowed for non-energy MCX options. Switch to NRML." style="color:var(--yw);font-size:9px;font-weight:800;cursor:help;margin-left:3px">⚠ Use NRML</span>'
       :'';
     // ATM offset dropdown is enabled when: Strike Type placeholder, Specific Strike,
     // OR any ATM-based value (ATM, ATM+X, ATM-X) — disabled only for premium-based types
@@ -4088,12 +4089,12 @@ function openModal(tab){
     var b=window._savedBroker;
     var sv=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
     var bsel=document.getElementById('brokerSelect');
-    if(bsel) bsel.value=b.broker||'kotak';
+    if(bsel) bsel.value=b.broker||'angelone';
     onBrokerChange();
     sv('zApiKey',   b.api_key||'');
     sv('algoNameInp', b.algo_name||'');
-    sv('zApiSecret',b.api_secret||'');
-    sv('zUserId',   b.user_id||'');
+    sv('zApiSecret','');
+    sv('zUserId',   b.client_code||'');
     sv('zUcc',      b.ucc||'');
     sv('zStaticIp', b.static_ip||'');
     sv('zPassword', b.password||'');
@@ -4117,7 +4118,7 @@ function swTab(tab){
   });
 }
 function bbGenerateToken(){
-  fetch("/api/zerodha/login_url")
+  fetch("/api/zerodha/login_url_disabled") // Not used in AngelOne
     .then(r=>r.json()).then(d=>{
       if(d.ok && d.url){ window.open(d.url,"_blank"); }
       else alert(d.msg||"Save API Key in Broker Setup first.");
@@ -4152,50 +4153,50 @@ function openZerodhaLogin(){
   const apiKey=(document.getElementById("zApiKey")||{}).value||"";
   if(!apiKey){alert("Enter API Key first.");return;}
   // Save API key first then get URL
-  fetch("/api/zerodha/login_url")
+  fetch("/api/zerodha/login_url_disabled") // Not used in AngelOne
   .then(r=>r.json()).then(d=>{
     if(d.ok&&d.url){window.open(d.url,"_blank");}
     else alert(d.msg||"Save API Key first.");
   }).catch(e=>alert("Error: "+e));
 }
 function onBrokerChange(){
-  var broker='zerodha';
+  var broker='angelone';
 
   // Field labels per broker
   var cfg={
     kotak:  {
       sec:'Kotak Neo Credentials',
       apiKey:'Consumer Key', userId:'Mobile Number',
-      password:'MPIN', staticIp:'AWS Elastic IP (whitelist in Kotak portal)',
-      totpHint:'&#8505; Get TOTP: kite.zerodha.com &#8594; My Profile &#8594; Security &#8594; Reset TOTP',
+      password:'MPIN', staticIp:'Static IP',
+      totpHint:'&#8505; Get TOTP: smartapi.angelbroking.com &#8594; Enable TOTP',
       showUcc:true, showApiSecret:false
     },
     zerodha:{
-      sec:'Zerodha Kite Connect Credentials',
-      apiKey:'API Key', userId:'Zerodha User ID',
-      password:'Login Password', staticIp:'AWS Elastic IP (register at kite.trade)',
-      totpHint:'&#8505; Get TOTP key: Zerodha Kite &#8594; Settings &#8594; Password &amp; Security &#8594; Enable External TOTP &#8594; Cannot scan? Copy key',
-      showUcc:false, showApiSecret:true
+      sec:'AngelOne SmartAPI Credentials',
+      apiKey:'API Key', userId:'Client Code',
+      password:'PIN', staticIp:'Static IP',
+      totpHint:'&#8505; Get TOTP: smartapi.angelbroking.com &#8594; Enable TOTP',
+      showUcc:false, showApiSecret:false
     },
     dhan:   {
       sec:'Dhan Credentials',
       apiKey:'Client ID', userId:'Mobile Number',
-      password:'PIN', staticIp:'AWS Elastic IP (whitelist in Dhan portal)',
+      password:'PIN', staticIp:'Static IP',
       totpHint:'&#8505; Get TOTP from Dhan app settings',
       showUcc:false, showApiSecret:true
     },
     upstox: {
       sec:'Upstox Credentials',
       apiKey:'API Key', userId:'Client ID',
-      password:'PIN', staticIp:'AWS Elastic IP (whitelist in Upstox portal)',
+      password:'PIN', staticIp:'Static IP',
       totpHint:'&#8505; Get TOTP from Upstox developer portal',
       showUcc:false, showApiSecret:true
     },
     angel:  {
-      sec:'Angel One Credentials',
+      sec:'AngelOne Credentials',
       apiKey:'API Key', userId:'Client ID',
-      password:'PIN', staticIp:'AWS Elastic IP (whitelist in Angel portal)',
-      totpHint:'&#8505; Get TOTP from Angel One SmartAPI portal',
+      password:'PIN', staticIp:'Static IP',
+      totpHint:'&#8505; Get TOTP from AngelOne SmartAPI portal',
       showUcc:false, showApiSecret:true
     },
   };
@@ -4214,24 +4215,24 @@ function onBrokerChange(){
   var uccRow=el('uccRow');
   if(uccRow) uccRow.style.display=b.showUcc?'flex':'none';
 
-  // Show/hide API Secret row (Zerodha and others, not Kotak)
+  // Show/hide API Secret row
   var secRow=el('apiSecretRow');
   if(secRow) secRow.style.display=b.showApiSecret?'flex':'none';
 
   // Update placeholder text
   var ph={
     kotak:  {apiKey:'f68ccfd0-...  (from NEO app → Invest → Trade API)',
-             userId:'+91XXXXXXXXXX', password:'6-digit MPIN',
+             userId:'AACK123456', password:'Your PIN',
              totp:'26-char TOTP secret from Kotak Securities'},
-    zerodha:{apiKey:'Your API Key', userId:'DV2571',
-             password:'Your login password',
-             totp:'32-char key from Zerodha Settings → Security'},
+    zerodha:{apiKey:'Your API Key', userId:'AACK123456',
+             password:'Your PIN',
+             totp:'TOTP secret from AngelOne SmartAPI portal'},
     dhan:   {apiKey:'Your Client ID', userId:'+91XXXXXXXXXX',
              password:'Your PIN', totp:'TOTP secret from Dhan'},
     upstox: {apiKey:'Your API Key', userId:'Your Client ID',
              password:'Your PIN', totp:'TOTP secret from Upstox'},
     angel:  {apiKey:'Your API Key', userId:'Your Client ID',
-             password:'Your PIN', totp:'TOTP secret from Angel One'},
+             password:'Your PIN', totp:'TOTP secret from AngelOne SmartAPI portal'},
   };
   var p=ph[broker]||ph.kotak;
   if(el('zApiKey'))   el('zApiKey').placeholder=p.apiKey;
@@ -4239,8 +4240,8 @@ function onBrokerChange(){
   if(el('zPassword')) el('zPassword').placeholder=p.password;
   if(el('zTotpKey'))  el('zTotpKey').placeholder=p.totp;
 }
-function saveBrokerZerodha(){
-  const broker   ='zerodha';
+function saveBrokerAngelOne(){
+  const broker   ='angelone';
   const apiKey   =(document.getElementById('zApiKey')||{}).value||'';
   const apiSecret=(document.getElementById('zApiSecret')||{}).value||'';
   const userId   =(document.getElementById('zUserId')||{}).value||'';
@@ -4249,13 +4250,13 @@ function saveBrokerZerodha(){
   const totpKey  =(document.getElementById('zTotpKey')||{}).value||'';
   const staticIp =(document.getElementById('zStaticIp')||{}).value||'';
   const algoName=(document.getElementById('algoNameInp')||{}).value||'';
-  const redirectUrl='http://127.0.0.1/zerodha/callback';
+  const redirectUrl='';
   const payload={
-    broker, api_key:apiKey, user_id:userId,
-    redirect_url:redirectUrl, static_ip:staticIp, server_ip:staticIp,
+    broker, api_key:apiKey, client_code:userId,
+    static_ip:staticIp, server_ip:staticIp,
   };
   if(algoName) payload.algo_name=algoName;
-  if(apiSecret) payload.api_secret=apiSecret;
+  // AngelOne — no API secret needed
   if(ucc)       payload.ucc=ucc;
   if(password)  payload.password=password;
   if(totpKey)   payload.totp_key=totpKey;
@@ -4264,6 +4265,7 @@ function saveBrokerZerodha(){
     body:JSON.stringify(payload)})
   .then(r=>r.json()).then(d=>{
     addLog('BROKER','MAIN',d.msg||'Broker config saved.');
+    window._savedBroker = Object.assign(window._savedBroker||{}, payload);
     document.getElementById('ovSetup').classList.remove('open');
   }).catch(e=>alert('Save failed: '+e));
 }
@@ -4782,7 +4784,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // Wire broker/alert save buttons
   const asave=document.querySelector('#mc-alert .msave');
   if(asave) asave.addEventListener('click',saveAlerts);
-  // Note: broker save is handled by onclick=saveBrokerZerodha() directly
+  // Note: broker save is handled by onclick=saveBrokerAngelOne() directly
   // Render DIY strategy templates on load
   if(typeof renderRmGrid==='function') renderRmGrid();
   // Close overlays on backdrop click
@@ -4833,8 +4835,8 @@ async function saveSetup(){
   const totpKey   = document.getElementById('setup-totp')?.value?.trim()||'';
   const tgToken   = document.getElementById('setup-tg-token')?.value?.trim()||'';
   const tgChatId  = document.getElementById('setup-tg-chatid')?.value?.trim()||'';
-  if(!apiKey||!apiSecret||!userId||!password||!totpKey){
-    alert('Please fill all Zerodha fields.');return;
+  if(!apiKey||!userId||!password||!totpKey){
+    alert('Please fill all AngelOne fields.');return;
   }
   if(!tgToken||!tgChatId){
     alert('Please fill Telegram fields.');return;
@@ -4842,8 +4844,8 @@ async function saveSetup(){
   try{
     const r = await fetch('/api/setup/save',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({api_key:apiKey,api_secret:apiSecret,
-        user_id:userId,password:password,totp_key:totpKey,
+      body:JSON.stringify({api_key:apiKey,
+        client_code:userId,password:password,totp_key:totpKey,
         telegram_token:tgToken,telegram_chat_id:tgChatId})});
     const d = await r.json();
     if(d.ok){

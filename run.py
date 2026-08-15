@@ -46,15 +46,14 @@ def rotate_logs():
 DEFAULT_CONFIG = {
     "dry_run"   : True,
     "port"      : 80,
-    "broker"    : "zerodha",
+    "broker"    : "angelone",
     "server_ip" : "",
     "broker_creds": {
         "api_key"       : "",
         "api_secret"    : "",
-        "user_id"       : "",
-        "access_token"  : "",
-        "request_token" : "",
-        "redirect_url"  : "http://127.0.0.1/zerodha/callback",
+        "client_code"   : "",
+        "password"      : "",
+        "totp_key"      : "",
     },
     "telegram_token"      : "",
     "telegram_chat_id"    : "",
@@ -135,12 +134,12 @@ def main():
 
     # ── Notify startup ─────────────────────────────────────────
     _broker_name = {
-        "zerodha": "Zerodha",
-    }.get(config.get("broker","zerodha").lower(), "Zerodha")
+        "angelone": "Angel One",
+    }.get(config.get("broker","angelone").lower(), "Angel One")
     _broker_hint = (
         "Check credentials in Broker Setup, then click Start Algo."
-        if config.get("broker","zerodha").lower() != "zerodha"
-        else "Generate Zerodha login URL in Broker Setup, then click Start Algo."
+        if config.get("broker","angelone").lower() != "angelone"
+        else "Check Angel One credentials in Broker Setup, then click Start Algo."
     )
     # Use public Elastic IP from config if available, else detect dynamically
     try:

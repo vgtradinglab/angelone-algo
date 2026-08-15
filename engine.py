@@ -413,10 +413,10 @@ class GrowwAdapter(BrokerBase):
     def get_order_status(self, o): raise NotImplementedError
     def cancel_order(self, o): raise NotImplementedError
 
-from zerodha_adapter import ZerodhaAdapter
+from angelone_adapter import AngelOneAdapter
 
 BROKER_MAP = {
-    "zerodha" : ZerodhaAdapter,
+    "angelone" : AngelOneAdapter,
 }
 
 
@@ -453,7 +453,7 @@ class PriceStore:
 
 # Global price store shared by all strategies
 price_store     = PriceStore()
-_kite_obj       = None   # set after broker login; used by get_atm_strike for kite.ltp()
+_kite_obj       = None   # not used in Angel One — kept for compatibility
 _rest_ltp_cache = {}     # {token: (ltp, timestamp)} — throttled REST LTP for illiquid tokens
 
 
@@ -937,21 +937,18 @@ def resolve_strike(leg: dict, instrument: str, option_chain: list) -> tuple:
         else:
             best = min(pool, key=lambda c: abs(c["strike"] - target_sp))
 
-        # If best candidate has no WebSocket price yet, try kite.ltp() REST
-        if best["ltp"] <= 0 and _kite_obj is not None:
+        # If best candidate has no WebSocket price yet, try REST LTP
+        if best["ltp"] <= 0 and hasattr(self.broker, "get_rest_ltp"):
             try:
                 instr_info = INSTRUMENTS.get(instrument, {})
                 exch = instr_info.get("exchange", "NFO")
-                ltp_key = f"{exch}:{best['sym']}"
-                resp = _kite_obj.ltp([ltp_key])
-                if resp and ltp_key in resp:
-                    ltp_val = float(resp[ltp_key]["last_price"])
-                    if ltp_val > 0:
-                        price_store.update(best["tok"], ltp_val)
-                        best = dict(best); best["ltp"] = ltp_val
-                        _log.info(f"resolve_strike: LTP fetched via REST for {best['sym']}: Rs {ltp_val:.2f}")
+                ltp_val = self.broker.get_rest_ltp(exch, best["sym"], best["tok"])
+                if ltp_val > 0:
+                    price_store.update(best["tok"], ltp_val)
+                    best = dict(best); best["ltp"] = ltp_val
+                    _log.info(f"resolve_strike: LTP fetched via REST for {best['sym']}: Rs {ltp_val:.2f}")
             except Exception as e:
-                _log.warning(f"resolve_strike kite.ltp() fallback: {e}")
+                _log.warning(f"resolve_strike REST LTP fallback: {e}")
 
         return best["tok"], best["sym"], best["ltp"]
 
@@ -1007,22 +1004,17 @@ def get_atm_strike(instrument: str, chain: list = None) -> float:
                           f"interval={interval} → ATM={atm:.0f}")
                 return float(atm)
 
-    # ── Method 3 (NSE/BSE): kite.ltp() REST call ───────────────
-    if ws_key and _kite_obj is not None:
+    # ── Method 3 (NSE/BSE): REST LTP fallback ───────────────
+    if ws_key and hasattr(broker, "get_rest_ltp"):
         try:
-            resp = _kite_obj.ltp([ws_key])
-            if resp and ws_key in resp:
-                spot = float(resp[ws_key]["last_price"])
-                # Also update price_store so WebSocket fallback works next time
-                if idx_tok and spot > 0:
-                    price_store.update(idx_tok, spot)
-                if spot > 0:
-                    atm = round(spot / interval) * interval
-                    _log.info(f"ATM({instrument}): spot={spot:.0f} (kite.ltp) "
-                              f"interval={interval} → ATM={atm:.0f}")
-                    return float(atm)
+            spot = broker.get_rest_ltp("NSE", ws_key.split(":")[-1], idx_tok or "")
+            if spot > 0:
+                if idx_tok: price_store.update(idx_tok, spot)
+                atm = round(spot / interval) * interval
+                _log.info(f"ATM({instrument}): spot={spot:.0f} (REST) interval={interval} → ATM={atm:.0f}")
+                return float(atm)
         except Exception as e:
-            _log.warning(f"ATM({instrument}): kite.ltp failed: {e}")
+            _log.warning(f"ATM({instrument}): REST LTP failed: {e}")
 
     # ── Method 4: Fallback — min CE-PE diff from live chain ────
     # Used only if index spot token not yet ticking.
@@ -1146,23 +1138,15 @@ class LegState:
         import time as _t
         _cache = _rest_ltp_cache
         cache_entry = _cache.get(self.token, (0.0, 0.0))
-        if (_t.time() - cache_entry[1]) > 30 and _kite_obj is not None:
+        if (_t.time() - cache_entry[1]) > 30 and hasattr(broker, "get_rest_ltp"):
             try:
-                # Build exchange:symbol key — use symbol directly
                 sym = self.symbol
-                # Determine exchange from instrument type
-                if sym.endswith("FUT") or sym[-2:] in ("CE","PE"):
-                    # Try MCX first, then NFO, BFO
-                    for exch in ("MCX","NFO","BFO"):
-                        key = f"{exch}:{sym}"
-                        resp = _kite_obj.ltp([key])
-                        if resp and key in resp:
-                            ltp = float(resp[key]["last_price"])
-                            break
-                if ltp > 0:
-                    price_store.update(self.token, ltp)
-                    _cache[self.token] = (ltp, _t.time())
-                    return ltp
+                for exch in ("MCX","NFO","BFO","NSE","BSE"):
+                    ltp = broker.get_rest_ltp(exch, sym, self.token)
+                    if ltp > 0:
+                        price_store.update(self.token, ltp)
+                        _cache[self.token] = (ltp, _t.time())
+                        return ltp
             except Exception:
                 pass
             _cache[self.token] = (0.0, _t.time())  # mark attempted
@@ -2310,19 +2294,16 @@ class StrategyRunner:
             # WebSocket hasn't ticked for this token yet.
             # Use kite.ltp() REST call to get actual last traded price.
             ref_ltp = price_store.get(tok)
-            if ref_ltp <= 0 and _kite_obj is not None:
+            if ref_ltp <= 0 and hasattr(self.broker, "get_rest_ltp"):
                 try:
                     instr_info = self._instr_info()
                     exch = instr_info.get("exchange", "NFO")
-                    ltp_key = f"{exch}:{sym}"
-                    resp = _kite_obj.ltp([ltp_key])
-                    if resp and ltp_key in resp:
-                        ref_ltp = float(resp[ltp_key]["last_price"])
-                        if ref_ltp > 0:
-                            price_store.update(tok, ref_ltp)
-                            self.log.info(f"LTP fetched via REST for {fmt_sym(sym)}: Rs {ref_ltp:.2f}")
+                    ref_ltp = self.broker.get_rest_ltp(exch, sym, tok)
+                    if ref_ltp > 0:
+                        price_store.update(tok, ref_ltp)
+                        self.log.info(f"LTP fetched via REST for {fmt_sym(sym)}: Rs {ref_ltp:.2f}")
                 except Exception as e:
-                    self.log.warning(f"kite.ltp() fallback failed for {fmt_sym(sym)}: {e}")
+                    self.log.warning(f"REST LTP fallback failed for {fmt_sym(sym)}: {e}")
             if ref_ltp <= 0:
                 self.log.warning(f"Cannot enter {fmt_sym(sym)} — LTP=0 after all retries. "
                                  f"Market may be closed or feed unavailable. Skipping entry.")
@@ -2482,17 +2463,14 @@ class StrategyRunner:
         # Get current live LTP for exit reference — prefer WebSocket,
         # fall back to kite.ltp() REST for illiquid tokens with no ticks
         _exit_ref_ltp = price_store.get(ls.token) or 0.0
-        if _exit_ref_ltp <= 0 and _kite_obj is not None:
+        if _exit_ref_ltp <= 0 and hasattr(self.broker, "get_rest_ltp"):
             try:
-                _ltp_key = f"{exch}:{ls.symbol}"
-                _resp = _kite_obj.ltp([_ltp_key])
-                if _resp and _ltp_key in _resp:
-                    _exit_ref_ltp = float(_resp[_ltp_key]["last_price"])
-                    if _exit_ref_ltp > 0:
-                        price_store.update(ls.token, _exit_ref_ltp)
-                        self.log.info(f"Exit LTP via REST for {fmt_sym(ls.symbol)}: Rs {_exit_ref_ltp:.2f}")
+                _exit_ref_ltp = self.broker.get_rest_ltp(exch, ls.symbol, ls.token)
+                if _exit_ref_ltp > 0:
+                    price_store.update(ls.token, _exit_ref_ltp)
+                    self.log.info(f"Exit LTP via REST for {fmt_sym(ls.symbol)}: Rs {_exit_ref_ltp:.2f}")
             except Exception as _e:
-                self.log.warning(f"Exit kite.ltp() failed: {_e}")
+                self.log.warning(f"Exit REST LTP failed: {_e}")
         # Final fallback: use avg_entry (at least a valid price)
         if _exit_ref_ltp <= 0:
             _exit_ref_ltp = ls.avg_entry if ls.avg_entry > 0 else ls.sl_price
@@ -2659,13 +2637,12 @@ class StrategyRunner:
             price = price_store.get(tok) or 0.0
             if price > 0:
                 return price
-            # Fallback: kite.ltp() REST if WebSocket hasn't ticked yet
+            # Fallback: REST LTP if WebSocket hasn't ticked yet
             ws_key = info.get("index_ws_key", "")
-            if ws_key and _kite_obj:
+            if ws_key and hasattr(self.broker, "get_rest_ltp"):
                 try:
-                    resp = _kite_obj.ltp([ws_key])
-                    if resp and ws_key in resp:
-                        return float(resp[ws_key]["last_price"])
+                    _rp = self.broker.get_rest_ltp("NSE", ws_key.split(":")[-1], "")
+                    if _rp > 0: return _rp
                 except Exception:
                     pass
             return 0.0
@@ -2686,12 +2663,10 @@ class StrategyRunner:
             if fltp > 0:
                 return fltp
             # REST fallback for illiquid MCX FUT
-            if _kite_obj:
+            if hasattr(self.broker, "get_rest_ltp"):
                 try:
-                    key  = f"MCX:{sym_t}"
-                    resp = _kite_obj.ltp([key])
-                    if resp and key in resp:
-                        return float(resp[key]["last_price"])
+                    _rp = self.broker.get_rest_ltp("MCX", sym_t, ftok)
+                    if _rp > 0: return _rp
                 except Exception:
                     pass
 
@@ -4004,40 +3979,24 @@ class Engine:
 
     def start(self) -> tuple[bool, str]:
         """Login, subscribe feed, mark ready. Returns (ok, message)."""
-        broker_name = self.config.get("broker","zerodha").lower()
-        BrokerClass = BROKER_MAP.get(broker_name, ZerodhaAdapter)
+        broker_name = self.config.get("broker","angelone").lower()
+        BrokerClass = BROKER_MAP.get(broker_name, AngelOneAdapter)
         self.broker = BrokerClass()
 
         bc = self.config.get("broker_creds",{})
         ok = self.broker.login(
-            api_key       = bc.get("api_key",""),
-            api_secret    = bc.get("api_secret",""),
-            user_id       = bc.get("user_id",""),
-            password      = bc.get("password",""),
-            totp_key      = bc.get("totp_key",""),
-            access_token  = bc.get("access_token",""),
-            request_token = bc.get("request_token",""),
-            # Kotak Neo specific
-            consumer_key  = bc.get("api_key",""),
-            mobile        = bc.get("user_id",""),
-            ucc           = bc.get("ucc",""),
-            mpin          = bc.get("password",""),
-            totp_secret   = bc.get("totp_key",""),
+            api_key      = bc.get("api_key",""),
+            client_code  = bc.get("client_code",""),
+            password     = bc.get("password",""),
+            totp_key     = bc.get("totp_key",""),
         )
 
         if not ok:
             return False, "Broker login failed. Check credentials in Broker Setup."
 
-        # Expose kite object globally so get_atm_strike can call kite.ltp()
-        global _kite_obj
-        if hasattr(self.broker, "_kite"):
-            _kite_obj = self.broker._kite
+        # Angel One — no kite object needed, WebSocket handles all prices
 
-        # Save access_token back to config (valid until midnight)
-        if hasattr(self.broker, "get_access_token"):
-            tok = self.broker.get_access_token()
-            if tok:
-                self.config.setdefault("broker_creds", {})["access_token"] = tok
+        # Angel One — tokens managed internally by adapter
 
         _default_index_tokens = []
         for _instr, _info in INSTRUMENTS.items():
