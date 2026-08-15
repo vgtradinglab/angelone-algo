@@ -1669,7 +1669,13 @@ body{
 
     <!-- 1. BASIC INFO -->
     <div class="card">
-      <div class="card-hdr">1. Basic Info</div>
+      <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+        <span>1. Basic Info</span>
+        <div class="tg" id="stratTypeTg" style="margin:0">
+          <button class="tgb on" data-type="time" onclick="switchStratType('time')">&#9201; Time Based</button>
+          <button class="tgb" data-type="indicator" onclick="switchStratType('indicator')">&#128200; Indicator / Signal</button>
+        </div>
+      </div>
       <div class="card-body">
         <div class="frow">
           <div class="fg" style="flex:0 0 200px">
@@ -4115,6 +4121,26 @@ function saveStrategy(){
       }
       else alert('Save failed: '+d.msg);
     }).catch(e=>alert('Network error: '+e));
+}
+
+// ── STRATEGY TYPE TOGGLE ─────────────────────────────────────
+function switchStratType(type){
+  // Update toggle buttons
+  var btns = document.querySelectorAll('#stratTypeTg .tgb');
+  btns.forEach(function(b){ b.classList.toggle('on', b.dataset.type===type); });
+
+  // Show/hide sections
+  var timeSections  = ['sectionLegs','sectionStratOpts','sectionTiming','sectionProtect','sectionAdvanced'];
+  var indSections   = ['sectionIndicator'];
+
+  timeSections.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = (type==='time') ? '' : 'none';
+  });
+  indSections.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = (type==='indicator') ? '' : 'none';
+  });
 }
 
 // ── MODALS ───────────────────────────────────────────────────
