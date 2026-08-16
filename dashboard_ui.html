@@ -2551,7 +2551,7 @@ var RM_STRATS = [
    indicator_config:{type:'EMA',timeframe:'5 Min',length:9,signal:'ABOVE'}},
 
   {id:'long_put', name:'Long Put',
-   svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#10b981" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#10b981" stroke-width="2" fill="none"/>',
+   svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#ef4444" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#ef4444" stroke-width="2" fill="none"/>',
    legs:[{action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
   {id:'ind_rsi', name:'RSI', is_indicator:true,
@@ -2568,7 +2568,7 @@ var RM_STRATS = [
    indicator_config:{type:'VWAP',timeframe:'5 Min',signal:'ABOVE'}},
 
   {id:'short_strng', name:'Short Strangle',
-   svg:'<polyline points="0,28 12,28 22,8 38,8 48,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
+   svg:'<polyline points="0,28 12,28 22,8 38,8 48,28 60,28" stroke="#ef4444" stroke-width="2" fill="rgba(239,68,68,0.07)"/>',
    legs:[{action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
@@ -2588,14 +2588,14 @@ var RM_STRATS = [
    indicator_config:{type:'CPR',timeframe:'5 Min',signal:'ABOVE'}},
 
   {id:'short_ifly', name:'Short Iron Fly',
-   svg:'<polyline points="0,28 14,28 24,8 36,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
+   svg:'<polyline points="0,28 14,28 24,8 36,8 46,28 60,28" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
    legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'BUY',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
   {id:'strdl_920', name:'920 Straddle',
-   svg:'<polyline points="0,28 22,28 30,8 38,28 60,28" stroke="#f59e0b" stroke-width="2" fill="rgba(245,158,11,0.08)"/><text x="30" y="34" text-anchor="middle" font-size="6" fill="#f59e0b" font-weight="bold">9:20</text>',
+   svg:'<polyline points="0,28 22,28 30,8 38,28 60,28" stroke="#a78bfa" stroke-width="2" fill="rgba(167,139,250,0.08)"/><text x="30" y="34" text-anchor="middle" font-size="6" fill="#a78bfa" font-weight="bold">9:20</text>',
    legs:[{action:'SELL',type:'CE',strike:'ATM',sl:25,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM',sl:25,slU:'%',tp:0,tpU:'%'}]},
 
