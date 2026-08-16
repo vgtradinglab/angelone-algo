@@ -4383,6 +4383,17 @@ function switchStratType(type){
     var el = document.getElementById(id);
     if(el) el.style.display = (type==='indicator') ? '' : 'none';
   });
+
+  // Hide Wait & Trade and Range Breakout for indicator mode
+  var wntEl = document.getElementById('chkWnT');
+  var rbEl  = document.getElementById('rbChk');
+  var wntLabel = wntEl ? wntEl.closest('label') : null;
+  var rbLabel  = rbEl  ? rbEl.closest('label')  : null;
+  var rbSection = document.getElementById('rbSection') || (rbEl ? rbEl.closest('.adv-wrap') : null);
+  if(wntLabel) wntLabel.style.display = (type==='indicator') ? 'none' : '';
+  if(rbLabel)  rbLabel.style.display  = (type==='indicator') ? 'none' : '';
+  // Also hide Range Breakout settings panel if visible
+  if(type==='indicator' && rbEl) { rbEl.checked=false; toggleRB(); }
 }
 
 // ── INDICATOR TYPE CHANGE ────────────────────────────────────
