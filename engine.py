@@ -1809,52 +1809,47 @@ class StrategyRunner:
                 break
 
             try:
-                # Import indicator module
-                if ind_type == "EMA":
-                    from indicators.ema import get_signal
-                    signal, val, price = get_signal(
-                        self.broker, exchange, instr, timeframe,
-                        length=int(ind_cfg.get("length", 9))
-                    )
-                elif ind_type == "SuperTrend":
-                    from indicators.supertrend import get_signal
-                    signal, val = get_signal(
-                        self.broker, exchange, instr, timeframe,
-                        length=int(ind_cfg.get("length", 10)),
-                        factor=float(ind_cfg.get("factor", 3))
-                    )
-                elif ind_type == "RSI":
-                    from indicators.rsi import get_signal
-                    signal, val = get_signal(
-                        self.broker, exchange, instr, timeframe,
-                        length=int(ind_cfg.get("length", 14)),
-                        upper=float(ind_cfg.get("upper", 70)),
-                        lower=float(ind_cfg.get("lower", 30)),
-                        use_middle=bool(ind_cfg.get("use_middle", False)),
-                        middle=float(ind_cfg.get("middle", 50))
-                    )
-                elif ind_type == "CPR":
-                    from indicators.cpr import get_signal
-                    signal, pivot, tc, bc = get_signal(
-                        self.broker, exchange, instr, timeframe
-                    )
-                    val = pivot
-                elif ind_type == "VWAP":
-                    from indicators.vwap import get_signal
-                    signal, val = get_signal(
-                        self.broker, exchange, instr, timeframe
-                    )
-                else:
-                    signal = None
-                    val    = None
+                # Get all indicator configs — support multiple indicators
+                ind_panels = ind_cfg if isinstance(ind_cfg, list) else [ind_cfg]
 
-                # Get current candle timestamp to avoid duplicate signals
+                def _get_signal_for_panel(p):
+                    """Get signal for one indicator panel."""
+                    ptype = p.get("type","EMA")
+                    ptf   = p.get("timeframe","5 Min")
+                    psig  = p.get("signal","ABOVE")
+                    raw_signal = None
+                    if ptype == "EMA":
+                        from indicators.ema import get_signal
+                        raw_signal, _, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",9)))
+                    elif ptype == "SuperTrend":
+                        from indicators.supertrend import get_signal
+                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",10)), factor=float(p.get("factor",3)))
+                    elif ptype == "RSI":
+                        from indicators.rsi import get_signal
+                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",14)), upper=float(p.get("upper",70)), lower=float(p.get("lower",30)), use_middle=bool(p.get("use_middle",False)), middle=float(p.get("middle",50)))
+                    elif ptype == "CPR":
+                        from indicators.cpr import get_signal
+                        raw_signal, _, _, _ = get_signal(self.broker, exchange, instr, ptf)
+                    elif ptype == "VWAP":
+                        from indicators.vwap import get_signal
+                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf)
+                    # Map raw signal to ABOVE/BELOW
+                    if raw_signal == "BUY": raw_signal = "ABOVE"
+                    elif raw_signal == "SELL": raw_signal = "BELOW"
+                    # Check if matches required signal
+                    return raw_signal == psig
+
+                # Check all panels — ALL must confirm
+                all_confirmed = all(_get_signal_for_panel(p) for p in ind_panels)
+                signal = "ABOVE" if all_confirmed else None
+
+                # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
-                mins       = INTERVAL_MINUTES.get(timeframe, 5)
-                candle_ts  = (now.minute // mins) * mins
+                first_tf  = ind_panels[0].get("timeframe","5 Min")
+                mins      = INTERVAL_MINUTES.get(first_tf, 5)
+                candle_ts = (now.minute // mins) * mins
 
-                ind_signal_cfg = ind_cfg.get('signal','ABOVE')
-                if signal and candle_ts != last_signal_candle and (ind_signal_cfg=='BOTH' or signal==ind_signal_cfg or (ind_signal_cfg=='ABOVE' and signal=='BUY') or (ind_signal_cfg=='BELOW' and signal=='SELL')):
+                if signal and candle_ts != last_signal_candle:
                     last_signal_candle = candle_ts
                     self.log.info(f"{self.name}: Signal={signal} Value={val} — executing legs")
                     self.status = "RUNNING"

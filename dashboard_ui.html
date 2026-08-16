@@ -1719,8 +1719,8 @@ body{
 
     <!-- INDICATOR SECTION — hidden by default -->
     <div class="card" id="sectionIndicator" style="display:none">
-      <div class="card-hdr">2. Indicator Settings</div>
-      <div class="card-body">
+      <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center"><span>2. Indicator Settings</span><button id="addIndBtn" onclick="addIndPanel()" style="background:var(--bl);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">&#43; Add Indicator</button></div>
+            <div style="display:flex;flex-direction:row;gap:8px;padding:10px 14px;flex-wrap:nowrap" id="indAllPanels"><div id="indMainBody" style="flex:1;border:1px solid var(--bd2);border-radius:8px;padding:8px;position:relative"><div style="font-size:10px;color:var(--tx3);margin-bottom:6px;font-weight:700">INDICATOR 1</div>
         <div class="frow">
           <div class="fg">
             <label class="flbl">Indicator</label>
@@ -1777,50 +1777,11 @@ body{
             </select>
           </div>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--tx3)">
-          &#9432; Signal generated on candle close only — not tick by tick.
-        </div>
-      </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--tx3)">&#9432; Above/Below</div>
+      </div><div id="indPanelsWrap" style="display:contents"></div></div>
+      <div style="padding:6px 14px;font-size:11px;color:var(--tx3)">&#9432; Signal on candle close only. All indicators must confirm same direction.</div>
     </div>
     <!-- INDICATOR SECTION -->
-    <div class="card" id="sectionIndicator" style="display:none">
-      <div class="card-hdr">2. Indicator Settings</div>
-      <div class="card-body">
-        <div class="frow">
-          <div class="fg"><label class="flbl">Indicator</label>
-            <select class="fsel" id="indType" onchange="onIndTypeChange()">
-              <option value="EMA">EMA</option><option value="SuperTrend">SuperTrend</option>
-              <option value="RSI">RSI</option><option value="CPR">CPR</option><option value="VWAP">VWAP</option>
-            </select></div>
-          <div class="fg"><label class="flbl">Timeframe</label>
-            <select class="fsel" id="indTimeframe">
-              <option value="1 Min">1 Min</option><option value="5 Min" selected>5 Min</option>
-              <option value="15 Min">15 Min</option><option value="30 Min">30 Min</option><option value="1 Hour">1 Hour</option>
-            </select></div>
-          <div class="fg" id="indLengthWrap"><label class="flbl">Length</label>
-            <input class="fin" id="indLength" type="number" value="9" min="1" max="50" style="width:80px"></div>
-          <div class="fg" id="indFactorWrap" style="display:none"><label class="flbl">Factor</label>
-            <input class="fin" id="indFactor" type="number" value="3" min="1" max="5" step="0.1" style="width:80px"></div>
-        </div>
-        <div class="frow" id="indRsiWrap" style="display:none;margin-top:8px">
-          <div class="fg"><label class="flbl">Upper</label><input class="fin" id="indUpper" type="number" value="70" style="width:80px"></div>
-          <div class="fg"><label class="flbl">Lower</label><input class="fin" id="indLower" type="number" value="30" style="width:80px"></div>
-          <div class="fg"><label class="flbl">Use Middle</label>
-            <div class="tg" id="indMiddleTg">
-              <button class="tgb" onclick="tog(this,'indmid')">Yes</button>
-              <button class="tgb on" onclick="tog(this,'indmid')">No</button>
-            </div></div>
-        </div>
-        <div class="frow" style="margin-top:8px">
-          <div class="fg"><label class="flbl">Signal</label>
-            <select class="fsel" id="indSignal">
-              <option value="ABOVE" selected>Above</option>
-              <option value="BELOW">Below</option>
-            </select></div>
-        </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--tx3)">&#9432; Signal on candle close only.</div>
-      </div>
-    </div>
     <!-- 2. POSITION LEGS -->
     <div class="card">
       <div class="card-hdr">
@@ -4315,10 +4276,7 @@ function saveStrategy(){
     var _imbtns=document.querySelectorAll('#indMiddleTg .tgb');
     var _useMid=false;
     _imbtns.forEach(function(b){if(b.classList.contains('on')&&b.textContent.trim()==='Yes')_useMid=true;});
-    _indCfg={type:_it?_it.value:'EMA',timeframe:_itf?_itf.value:'5 Min',
-             length:_il?parseInt(_il.value)||9:9,factor:_if?parseFloat(_if.value)||3:3,
-             signal:_is?_is.value:'BUY',upper:_iu?parseFloat(_iu.value)||70:70,
-             lower:_ilo?parseFloat(_ilo.value)||30:30,use_middle:_useMid,middle:50};
+    _indCfg=_getFullIndConfig();
   }
   const s={
     id:editingId!=null?editingId:Date.now(),
@@ -4417,18 +4375,96 @@ function onIndTypeChange(){
 }
 
 // ── INDICATOR TYPE CHANGE ────────────────────────────────────
-function onIndTypeChange(){
-  var type=document.getElementById('indType').value;
-  var lw=document.getElementById('indLengthWrap');
-  var fw=document.getElementById('indFactorWrap');
-  var rw=document.getElementById('indRsiWrap');
-  if(lw) lw.style.display='';
-  if(fw) fw.style.display='none';
-  if(rw) rw.style.display='none';
-  if(type==='EMA'){document.getElementById('indLength').value=9;}
-  else if(type==='SuperTrend'){document.getElementById('indLength').value=10;if(fw)fw.style.display='';document.getElementById('indFactor').value=3;}
-  else if(type==='RSI'){document.getElementById('indLength').value=14;if(rw)rw.style.display='';}
-  else if(type==='CPR'||type==='VWAP'){if(lw)lw.style.display='none';}
+
+
+// ── MULTI INDICATOR SUPPORT ─────────────────────────────────
+var _indExtra = []; // extra indicator panels (max 2 additional)
+
+function addIndPanel(){
+  if(_indExtra.length >= 2){ alert('Maximum 3 indicators allowed.'); return; }
+  _indExtra.push({type:'EMA',timeframe:'5 Min',length:9,factor:3,signal:'ABOVE',upper:70,lower:30,use_middle:false});
+  _renderIndExtra();
+}
+
+function _renderIndExtra(){
+  var wrap = document.getElementById('indPanelsWrap');
+  if(!wrap) return;
+  wrap.style.display='contents';
+  var html='';
+  _indExtra.forEach(function(p,i){
+    html+='<div style="border:1px solid var(--bd2);border-radius:8px;padding:8px;position:relative;flex:1;overflow:hidden">';
+    html+='<div style="font-size:10px;color:var(--tx3);margin-bottom:6px;font-weight:700">INDICATOR '+(i+2)+'</div>';
+    html+='<button onclick="_removeIndPanel('+i+')" style="position:absolute;top:6px;right:6px;background:var(--rd);color:#fff;border:none;border-radius:4px;padding:1px 7px;font-size:11px;cursor:pointer">&#x2715;</button>';
+    html+='<div class="frow">';
+    // Type
+    html+='<div class="fg"><label class="flbl">Indicator</label><select class="fsel" onchange="_indExtra['+i+'].type=this.value;_renderIndExtra()">';
+    ['EMA','SuperTrend','RSI','CPR','VWAP'].forEach(function(t){ html+='<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>'; });
+    html+='</select></div>';
+    // Timeframe
+    html+='<div class="fg"><label class="flbl">Timeframe</label><select class="fsel" onchange="_indExtra['+i+'].timeframe=this.value">';
+    ['1 Min','5 Min','15 Min','30 Min','1 Hour'].forEach(function(t){ html+='<option value="'+t+'"'+(p.timeframe===t?' selected':'')+'>'+t+'</option>'; });
+    html+='</select></div>';
+    // Length
+    if(p.type!=='CPR'&&p.type!=='VWAP'){
+      html+='<div class="fg"><label class="flbl">Length</label><input class="fin" type="number" value="'+p.length+'" min="1" max="50" style="width:55px" onchange="_indExtra['+i+'].length=parseInt(this.value)||9"></div>';
+    }
+    // Factor
+    if(p.type==='SuperTrend'){
+      html+='<div class="fg"><label class="flbl">Factor</label><input class="fin" type="number" value="'+p.factor+'" min="1" max="5" step="0.1" style="width:55px" onchange="_indExtra['+i+'].factor=parseFloat(this.value)||3"></div>';
+    }
+    html+='</div>';
+    // RSI levels
+    if(p.type==='RSI'){
+      html+='<div class="frow" style="margin-top:6px">';
+      html+='<div class="fg"><label class="flbl">Upper</label><input class="fin" type="number" value="'+p.upper+'" style="width:55px" onchange="_indExtra['+i+'].upper=parseFloat(this.value)||70"></div>';
+      html+='<div class="fg"><label class="flbl">Lower</label><input class="fin" type="number" value="'+p.lower+'" style="width:55px" onchange="_indExtra['+i+'].lower=parseFloat(this.value)||30"></div>';
+      html+='</div>';
+    }
+    // Signal
+    html+='<div class="frow" style="margin-top:6px"><div class="fg"><label class="flbl">Signal</label><select class="fsel" onchange="_indExtra['+i+'].signal=this.value">';
+    html+='<option value="ABOVE"'+(p.signal==="ABOVE"?' selected':'')+'>Above</option>';
+    html+='<option value="BELOW"'+(p.signal==="BELOW"?' selected':'')+'>Below</option>';
+    html+='</select></div></div>';
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
+  // Hide add button if 3 indicators
+  var btn=document.getElementById('addIndBtn');
+  if(btn) btn.style.display=(_indExtra.length>=2)?'none':'';
+}
+
+function _removeIndPanel(i){
+  _indExtra.splice(i,1);
+  _renderIndExtra();
+  var btn=document.getElementById('addIndBtn');
+  if(btn) btn.style.display='';
+}
+
+function _getFullIndConfig(){
+  // Get primary indicator
+  var indTypeEl=document.getElementById('indType');
+  var indTfEl=document.getElementById('indTimeframe');
+  var indLenEl=document.getElementById('indLength');
+  var indFacEl=document.getElementById('indFactor');
+  var indSigEl=document.getElementById('indSignal');
+  var indUpEl=document.getElementById('indUpper');
+  var indLoEl=document.getElementById('indLower');
+  var midBtns=document.querySelectorAll('#indMiddleTg .tgb');
+  var useMid=false;
+  midBtns.forEach(function(b){if(b.classList.contains('on')&&b.textContent.trim()==='Yes')useMid=true;});
+  var primary={
+    type:indTypeEl?indTypeEl.value:'EMA',
+    timeframe:indTfEl?indTfEl.value:'5 Min',
+    length:indLenEl?parseInt(indLenEl.value)||9:9,
+    factor:indFacEl?parseFloat(indFacEl.value)||3:3,
+    signal:indSigEl?indSigEl.value:'ABOVE',
+    upper:indUpEl?parseFloat(indUpEl.value)||70:70,
+    lower:indLoEl?parseFloat(indLoEl.value)||30:30,
+    use_middle:useMid,middle:50
+  };
+  // Combine primary + extra
+  var all=[primary].concat(_indExtra);
+  return all;
 }
 
 // ── MODALS ───────────────────────────────────────────────────
