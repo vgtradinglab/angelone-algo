@@ -1749,6 +1749,135 @@ class StrategyRunner:
         self.status  = "READY"
         self._mtm_peak = 0.0  # reset peak for fresh day
 
+
+    def _run_indicator(self, option_chain: list):
+        """
+        Indicator based strategy runner.
+        Waits for indicator signal on candle close then executes legs.
+        Same leg execution, SL, MTM logic as time based strategy.
+        """
+        import sys, os
+        sys.path.insert(0, '/home/ubuntu/angelone-algo')
+        from datetime import datetime as _dt
+        import pytz as _pytz
+        import time as _time
+
+        logic      = self.s.get("logic", {})
+        instr      = self.s.get("idx", "NIFTY")
+        start_t    = logic.get("startTime", "09:20:00")
+        end_t      = logic.get("endTime", "15:15:00")
+        days       = self.s.get("days", [True]*5+[False,False])
+        ind_cfg    = self.s.get("indicator_config", {})
+        ind_type   = ind_cfg.get("type", "EMA")
+        timeframe  = ind_cfg.get("timeframe", "5 Min")
+        IST        = _pytz.timezone("Asia/Kolkata")
+
+        # Get exchange for candle fetch
+        info       = INSTRUMENTS.get(instr, {})
+        is_mcx     = info.get("is_mcx", False)
+        exchange   = "MCX" if is_mcx else ("BSE" if info.get("exchange","NSE") in ("BSE","BFO") else "NSE")
+
+        self.log.info(f"{self.name}: Indicator strategy started — {ind_type} {timeframe}")
+        self._update_status("READY")
+
+        last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
+
+        while True:
+            now     = _dt.now(IST)
+            weekday = now.weekday()
+
+            # Check if today is active day
+            if weekday >= len(days) or not days[weekday]:
+                _time.sleep(60)
+                continue
+
+            now_s = now.strftime("%H:%M:%S")
+
+            # Before start time — wait
+            if now_s < start_t:
+                _time.sleep(10)
+                continue
+
+            # After end time — exit and stop
+            if now_s >= end_t:
+                self.log.info(f"{self.name}: End time reached — stopping indicator strategy.")
+                self._update_status("EXITED")
+                break
+
+            # Check if status is still running
+            if self.s.get("status") in ("EXITED","CLOSED","DISABLED"):
+                break
+
+            try:
+                # Import indicator module
+                if ind_type == "EMA":
+                    from indicators.ema import get_signal
+                    signal, val, price = get_signal(
+                        self.broker, exchange, instr, timeframe,
+                        length=int(ind_cfg.get("length", 9))
+                    )
+                elif ind_type == "SuperTrend":
+                    from indicators.supertrend import get_signal
+                    signal, val = get_signal(
+                        self.broker, exchange, instr, timeframe,
+                        length=int(ind_cfg.get("length", 10)),
+                        factor=float(ind_cfg.get("factor", 3))
+                    )
+                elif ind_type == "RSI":
+                    from indicators.rsi import get_signal
+                    signal, val = get_signal(
+                        self.broker, exchange, instr, timeframe,
+                        length=int(ind_cfg.get("length", 14)),
+                        upper=float(ind_cfg.get("upper", 70)),
+                        lower=float(ind_cfg.get("lower", 30)),
+                        use_middle=bool(ind_cfg.get("use_middle", False)),
+                        middle=float(ind_cfg.get("middle", 50))
+                    )
+                elif ind_type == "CPR":
+                    from indicators.cpr import get_signal
+                    signal, pivot, tc, bc = get_signal(
+                        self.broker, exchange, instr, timeframe
+                    )
+                    val = pivot
+                elif ind_type == "VWAP":
+                    from indicators.vwap import get_signal
+                    signal, val = get_signal(
+                        self.broker, exchange, instr, timeframe
+                    )
+                else:
+                    signal = None
+                    val    = None
+
+                # Get current candle timestamp to avoid duplicate signals
+                from indicators.base import INTERVAL_MINUTES
+                mins       = INTERVAL_MINUTES.get(timeframe, 5)
+                candle_ts  = (now.minute // mins) * mins
+
+                if signal and candle_ts != last_signal_candle:
+                    last_signal_candle = candle_ts
+                    self.log.info(f"{self.name}: Signal={signal} Value={val} — executing legs")
+                    self.status = "RUNNING"
+                    # Execute legs same as time based strategy
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    results = []
+                    legs = self.s.get("legs", [])
+                    if legs:
+                        with ThreadPoolExecutor(max_workers=min(len(legs),4)) as ex:
+                            futs = {ex.submit(self._enter_leg, leg, option_chain): leg
+                                    for leg in legs}
+                            for fut in as_completed(futs):
+                                ls = fut.result()
+                                if ls:
+                                    results.append(ls)
+                        self.leg_states = results
+                        self.log.info(f"{self.name}: {len(results)} legs entered")
+
+            except Exception as e:
+                self.log.error(f"{self.name}: Indicator runner error: {e}")
+
+            # Wait for next candle close check — every 30 seconds
+            _time.sleep(30)
+
     def _positional_state_path(self) -> str:
         import os
         return os.path.join(
@@ -2685,6 +2814,10 @@ class StrategyRunner:
 
     def run(self, option_chain: list):
         """Main strategy execution loop."""
+        # ── Route to indicator runner if stratType == indicator ──
+        if self.s.get("stratType","time") == "indicator":
+            self._run_indicator(option_chain)
+            return
         self._cached_chain = option_chain  # used by _rb_get_price for MCX FUT price
         logic     = self.s.get("logic", {})
         instr     = self.s.get("idx","NIFTY")

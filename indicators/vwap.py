@@ -1,0 +1,57 @@
+"""
+VWAP — Volume Weighted Average Price Indicator
+Signal: Price crosses above/below VWAP on candle close
+"""
+import logging
+from .base import get_candles
+
+_log = logging.getLogger("VWAP")
+
+def calculate_vwap(candles):
+    """
+    Calculate session VWAP from candles.
+    VWAP = Sum(typical_price * volume) / Sum(volume)
+    """
+    try:
+        total_tp_vol = 0.0
+        total_vol    = 0.0
+        for c in candles:
+            high   = c[2]
+            low    = c[3]
+            close  = c[4]
+            volume = c[5]
+            tp     = (high + low + close) / 3
+            total_tp_vol += tp * volume
+            total_vol    += volume
+        if total_vol == 0:
+            return None
+        return round(total_tp_vol / total_vol, 2)
+    except Exception as e:
+        _log.error(f"[VWAP] calculate_vwap error: {e}")
+        return None
+
+def get_signal(broker, exchange, symbol, timeframe):
+    """
+    Returns signal: 'BUY', 'SELL', or None
+    BUY  — Price closes above VWAP
+    SELL — Price closes below VWAP
+    """
+    try:
+        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=100)
+        if len(candles) < 2:
+            return None, None
+        vwap       = calculate_vwap(candles)
+        if vwap is None:
+            return None, None
+        curr_close = candles[-1][4]
+        prev_close = candles[-2][4]
+        signal     = None
+        if prev_close <= vwap and curr_close > vwap:
+            signal = 'BUY'
+        elif prev_close >= vwap and curr_close < vwap:
+            signal = 'SELL'
+        _log.info(f"[VWAP] {symbol} {timeframe} VWAP={vwap} Price={curr_close} → {signal or 'WAIT'}")
+        return signal, vwap
+    except Exception as e:
+        _log.error(f"[VWAP] get_signal error: {e}")
+        return None, None
