@@ -1853,7 +1853,8 @@ class StrategyRunner:
                 mins       = INTERVAL_MINUTES.get(timeframe, 5)
                 candle_ts  = (now.minute // mins) * mins
 
-                if signal and candle_ts != last_signal_candle:
+                ind_signal_cfg = ind_cfg.get('signal','ABOVE')
+                if signal and candle_ts != last_signal_candle and (ind_signal_cfg=='BOTH' or signal==ind_signal_cfg or (ind_signal_cfg=='ABOVE' and signal=='BUY') or (ind_signal_cfg=='BELOW' and signal=='SELL')):
                     last_signal_candle = candle_ts
                     self.log.info(f"{self.name}: Signal={signal} Value={val} — executing legs")
                     self.status = "RUNNING"

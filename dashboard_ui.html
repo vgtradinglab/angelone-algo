@@ -1772,9 +1772,8 @@ body{
           <div class="fg">
             <label class="flbl">Signal</label>
             <select class="fsel" id="indSignal">
-              <option value="BUY" selected>Buy Signal Only</option>
-              <option value="SELL">Sell Signal Only</option>
-              <option value="BOTH">Both Buy and Sell</option>
+              <option value="ABOVE" selected>Above</option>
+              <option value="BELOW">Below</option>
             </select>
           </div>
         </div>
@@ -1815,9 +1814,8 @@ body{
         <div class="frow" style="margin-top:8px">
           <div class="fg"><label class="flbl">Signal</label>
             <select class="fsel" id="indSignal">
-              <option value="BUY" selected>Buy Signal Only</option>
-              <option value="SELL">Sell Signal Only</option>
-              <option value="BOTH">Both Buy and Sell</option>
+              <option value="ABOVE" selected>Above</option>
+              <option value="BELOW">Below</option>
             </select></div>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--tx3)">&#9432; Signal on candle close only.</div>
@@ -2589,7 +2587,7 @@ var RM_STRATS = [
 
   {id:'ind_ema', name:'EMA', is_indicator:true,
    svg:'<polyline points="0,28 15,20 30,10 45,18 60,8" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>',
-   indicator_config:{type:'EMA',timeframe:'5 Min',length:9,signal:'BUY'}},
+   indicator_config:{type:'EMA',timeframe:'5 Min',length:9,signal:'ABOVE'}},
 
   {id:'long_put', name:'Long Put',
    svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#10b981" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#10b981" stroke-width="2" fill="none"/>',
@@ -2597,7 +2595,7 @@ var RM_STRATS = [
 
   {id:'ind_rsi', name:'RSI', is_indicator:true,
    svg:'<polyline points="0,20 10,10 20,25 30,8 40,22 50,12 60,20" stroke="#a78bfa" stroke-width="2" fill="none"/><line x1="0" y1="10" x2="60" y2="10" stroke="#ef4444" stroke-width="1" stroke-dasharray="2,2"/><line x1="0" y1="28" x2="60" y2="28" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>',
-   indicator_config:{type:'RSI',timeframe:'5 Min',length:14,upper:70,lower:30,use_middle:false,signal:'BUY'}},
+   indicator_config:{type:'RSI',timeframe:'5 Min',length:14,upper:70,lower:30,use_middle:false,signal:'ABOVE'}},
 
   {id:'short_strdl', name:'Short Straddle',
    svg:'<polyline points="0,28 22,28 30,8 38,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
@@ -2606,7 +2604,7 @@ var RM_STRATS = [
 
   {id:'ind_vwap', name:'VWAP', is_indicator:true,
    svg:'<polyline points="0,20 10,18 20,22 30,16 40,24 50,14 60,18" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>',
-   indicator_config:{type:'VWAP',timeframe:'5 Min',signal:'BUY'}},
+   indicator_config:{type:'VWAP',timeframe:'5 Min',signal:'ABOVE'}},
 
   {id:'short_strng', name:'Short Strangle',
    svg:'<polyline points="0,28 12,28 22,8 38,8 48,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
@@ -2615,7 +2613,7 @@ var RM_STRATS = [
 
   {id:'ind_supertrend', name:'SuperTrend', is_indicator:true,
    svg:'<polyline points="0,28 10,28 20,10 30,10 40,28 50,28 60,10" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
-   indicator_config:{type:'SuperTrend',timeframe:'5 Min',length:10,factor:3,signal:'BUY'}},
+   indicator_config:{type:'SuperTrend',timeframe:'5 Min',length:10,factor:3,signal:'ABOVE'}},
 
   {id:'short_ic', name:'Short Iron Condor',
    svg:'<polyline points="0,28 10,28 18,8 28,8 38,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
@@ -2626,7 +2624,7 @@ var RM_STRATS = [
 
   {id:'ind_cpr', name:'CPR', is_indicator:true,
    svg:'<line x1="0" y1="14" x2="60" y2="14" stroke="#f59e0b" stroke-width="2"/><line x1="0" y1="20" x2="60" y2="20" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/><line x1="0" y1="8" x2="60" y2="8" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>',
-   indicator_config:{type:'CPR',timeframe:'5 Min',signal:'BUY'}},
+   indicator_config:{type:'CPR',timeframe:'5 Min',signal:'ABOVE'}},
 
   {id:'short_ifly', name:'Short Iron Fly',
    svg:'<polyline points="0,28 14,28 24,8 36,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
