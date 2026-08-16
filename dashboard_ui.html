@@ -1783,6 +1783,46 @@ body{
         </div>
       </div>
     </div>
+    <!-- INDICATOR SECTION -->
+    <div class="card" id="sectionIndicator" style="display:none">
+      <div class="card-hdr">2. Indicator Settings</div>
+      <div class="card-body">
+        <div class="frow">
+          <div class="fg"><label class="flbl">Indicator</label>
+            <select class="fsel" id="indType" onchange="onIndTypeChange()">
+              <option value="EMA">EMA</option><option value="SuperTrend">SuperTrend</option>
+              <option value="RSI">RSI</option><option value="CPR">CPR</option><option value="VWAP">VWAP</option>
+            </select></div>
+          <div class="fg"><label class="flbl">Timeframe</label>
+            <select class="fsel" id="indTimeframe">
+              <option value="1 Min">1 Min</option><option value="5 Min" selected>5 Min</option>
+              <option value="15 Min">15 Min</option><option value="30 Min">30 Min</option><option value="1 Hour">1 Hour</option>
+            </select></div>
+          <div class="fg" id="indLengthWrap"><label class="flbl">Length</label>
+            <input class="fin" id="indLength" type="number" value="9" min="1" max="50" style="width:80px"></div>
+          <div class="fg" id="indFactorWrap" style="display:none"><label class="flbl">Factor</label>
+            <input class="fin" id="indFactor" type="number" value="3" min="1" max="5" step="0.1" style="width:80px"></div>
+        </div>
+        <div class="frow" id="indRsiWrap" style="display:none;margin-top:8px">
+          <div class="fg"><label class="flbl">Upper</label><input class="fin" id="indUpper" type="number" value="70" style="width:80px"></div>
+          <div class="fg"><label class="flbl">Lower</label><input class="fin" id="indLower" type="number" value="30" style="width:80px"></div>
+          <div class="fg"><label class="flbl">Use Middle</label>
+            <div class="tg" id="indMiddleTg">
+              <button class="tgb" onclick="tog(this,'indmid')">Yes</button>
+              <button class="tgb on" onclick="tog(this,'indmid')">No</button>
+            </div></div>
+        </div>
+        <div class="frow" style="margin-top:8px">
+          <div class="fg"><label class="flbl">Signal</label>
+            <select class="fsel" id="indSignal">
+              <option value="BUY" selected>Buy Signal Only</option>
+              <option value="SELL">Sell Signal Only</option>
+              <option value="BOTH">Both Buy and Sell</option>
+            </select></div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--tx3)">&#9432; Signal on candle close only.</div>
+      </div>
+    </div>
     <!-- 2. POSITION LEGS -->
     <div class="card">
       <div class="card-hdr">
@@ -2543,121 +2583,134 @@ var _rmSym = 'NIFTY';
 
 // ── READY-MADE STRATEGY TEMPLATES ──────────────────────────
 var RM_STRATS = [
-  /* ── Single leg ─────────────────────────────────────────── */
-  {id:'long_call',   name:'Long Call',
+  {id:'long_call', name:'Long Call',
    svg:'<polyline points="0,30 22,30 42,12" stroke="#10b981" stroke-width="2" fill="none"/><line x1="42" y1="12" x2="60" y2="12" stroke="#10b981" stroke-width="2"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+   legs:[{action:'BUY',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  {id:'short_call',  name:'Short Call',
-   svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#ef4444" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#ef4444" stroke-width="2" fill="none"/>',
-   legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'ind_ema', name:'EMA', is_indicator:true,
+   svg:'<polyline points="0,28 15,20 30,10 45,18 60,8" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>',
+   indicator_config:{type:'EMA',timeframe:'5 Min',length:9,signal:'BUY'}},
 
-  {id:'long_put',    name:'Long Put',
+  {id:'long_put', name:'Long Put',
    svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#10b981" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#10b981" stroke-width="2" fill="none"/>',
-   legs:[{action:'BUY', type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+   legs:[{action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  {id:'short_put',   name:'Short Put',
-   svg:'<polyline points="0,30 22,30 42,12" stroke="#10b981" stroke-width="2" fill="none"/><line x1="42" y1="12" x2="60" y2="12" stroke="#10b981" stroke-width="2"/>',
-   legs:[{action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  /* ── Vertical spreads ────────────────────────────────────── */
-  {id:'bull_call',   name:'Bull Call Spread',
-   svg:'<line x1="0" y1="28" x2="16" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="16" y1="28" x2="34" y2="10" stroke="#10b981" stroke-width="2"/><line x1="34" y1="10" x2="60" y2="10" stroke="#10b981" stroke-width="2"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'bear_call',   name:'Bear Call Spread',
-   svg:'<line x1="0" y1="10" x2="16" y2="10" stroke="#10b981" stroke-width="2"/><line x1="16" y1="10" x2="34" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="34" y1="28" x2="60" y2="28" stroke="#ef4444" stroke-width="2"/>',
-   legs:[{action:'SELL',type:'CE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'bull_put',    name:'Bull Put Spread',
-   svg:'<line x1="0" y1="14" x2="26" y2="14" stroke="#10b981" stroke-width="2"/><line x1="26" y1="14" x2="44" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="44" y1="28" x2="60" y2="28" stroke="#ef4444" stroke-width="2"/>',
-   legs:[{action:'SELL',type:'PE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'bear_put',    name:'Bear Put Spread',
-   svg:'<line x1="0" y1="28" x2="16" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="16" y1="28" x2="34" y2="10" stroke="#10b981" stroke-width="2"/><line x1="34" y1="10" x2="60" y2="10" stroke="#10b981" stroke-width="2"/>',
-   legs:[{action:'BUY', type:'PE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  /* ── Straddles & Strangles ───────────────────────────────── */
-  {id:'long_strdl',  name:'Long Straddle',
-   svg:'<polyline points="0,8 22,8 30,28 38,8 60,8" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'ind_rsi', name:'RSI', is_indicator:true,
+   svg:'<polyline points="0,20 10,10 20,25 30,8 40,22 50,12 60,20" stroke="#a78bfa" stroke-width="2" fill="none"/><line x1="0" y1="10" x2="60" y2="10" stroke="#ef4444" stroke-width="1" stroke-dasharray="2,2"/><line x1="0" y1="28" x2="60" y2="28" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>',
+   indicator_config:{type:'RSI',timeframe:'5 Min',length:14,upper:70,lower:30,use_middle:false,signal:'BUY'}},
 
   {id:'short_strdl', name:'Short Straddle',
    svg:'<polyline points="0,28 22,28 30,8 38,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
    legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  {id:'long_strng',  name:'Long Strangle',
-   svg:'<polyline points="0,8 12,8 22,28 38,28 48,8 60,8" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.06)"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'ind_vwap', name:'VWAP', is_indicator:true,
+   svg:'<polyline points="0,20 10,18 20,22 30,16 40,24 50,14 60,18" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>',
+   indicator_config:{type:'VWAP',timeframe:'5 Min',signal:'BUY'}},
 
   {id:'short_strng', name:'Short Strangle',
    svg:'<polyline points="0,28 12,28 22,8 38,8 48,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
    legs:[{action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  /* ── Iron structures ─────────────────────────────────────── */
-  {id:'short_ifly',  name:'Short Iron Fly',
-   svg:'<polyline points="0,28 14,28 24,8 36,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
-   legs:[{action:'SELL',type:'CE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'ind_supertrend', name:'SuperTrend', is_indicator:true,
+   svg:'<polyline points="0,28 10,28 20,10 30,10 40,28 50,28 60,10" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
+   indicator_config:{type:'SuperTrend',timeframe:'5 Min',length:10,factor:3,signal:'BUY'}},
 
-  {id:'short_ic',    name:'Short Iron Condor',
+  {id:'short_ic', name:'Short Iron Condor',
    svg:'<polyline points="0,28 10,28 18,8 28,8 38,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
-   legs:[{action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'CE',strike:'ATM+200', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-200', sl:0,slU:'%',tp:0,tpU:'%'}]},
+   legs:[{action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'CE',strike:'ATM+200',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-200',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  {id:'long_ifly',   name:'Long Iron Fly',
-   svg:'<polyline points="0,8 14,8 24,28 36,28 46,8 60,8" stroke="#ef4444" stroke-width="2" fill="rgba(239,68,68,0.06)"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'ind_cpr', name:'CPR', is_indicator:true,
+   svg:'<line x1="0" y1="14" x2="60" y2="14" stroke="#f59e0b" stroke-width="2"/><line x1="0" y1="20" x2="60" y2="20" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/><line x1="0" y1="8" x2="60" y2="8" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>',
+   indicator_config:{type:'CPR',timeframe:'5 Min',signal:'BUY'}},
 
-  {id:'long_ic',     name:'Long Iron Condor',
-   svg:'<polyline points="0,8 10,8 18,28 28,28 38,28 46,8 60,8" stroke="#ef4444" stroke-width="2" fill="rgba(239,68,68,0.06)"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+200', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-200', sl:0,slU:'%',tp:0,tpU:'%'}]},
+  {id:'short_ifly', name:'Short Iron Fly',
+   svg:'<polyline points="0,28 14,28 24,8 36,8 46,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
+   legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
 
-  /* ── Ratio & Advanced ────────────────────────────────────── */
-  {id:'call_ratio',  name:'Call Ratio Spread',
-   svg:'<polyline points="0,28 15,28 30,8 36,16 60,28" stroke="#10b981" stroke-width="2" fill="none"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'put_ratio',   name:'Put Ratio Spread',
-   svg:'<polyline points="0,28 25,16 30,8 45,28 60,28" stroke="#10b981" stroke-width="2" fill="none"/>',
-   legs:[{action:'BUY', type:'PE',strike:'ATM',    sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'batman',      name:'Batman Strategy',
-   svg:'<polyline points="0,28 10,28 15,8 22,20 30,8 38,20 45,8 50,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.05)"/>',
-   legs:[{action:'BUY', type:'CE',strike:'ATM+200', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'CE',strike:'ATM+100', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'BUY', type:'PE',strike:'ATM-200', sl:0,slU:'%',tp:0,tpU:'%'},
-         {action:'SELL',type:'PE',strike:'ATM-100', sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  /* ── Special / Timed ─────────────────────────────────────── */
-  {id:'strdl_920',   name:'920 Straddle',
+  {id:'strdl_920', name:'920 Straddle',
    svg:'<polyline points="0,28 22,28 30,8 38,28 60,28" stroke="#f59e0b" stroke-width="2" fill="rgba(245,158,11,0.08)"/><text x="30" y="34" text-anchor="middle" font-size="6" fill="#f59e0b" font-weight="bold">9:20</text>',
    legs:[{action:'SELL',type:'CE',strike:'ATM',sl:25,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM',sl:25,slU:'%',tp:0,tpU:'%'}]},
 
-  /* ── Premium Strategies ─────────────────────────────────── */
+  {id:'call_ratio', name:'Call Ratio Spread',
+   svg:'<polyline points="0,28 15,28 30,8 36,16 60,28" stroke="#10b981" stroke-width="2" fill="none"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'bull_call', name:'Bull Call Spread',
+   svg:'<line x1="0" y1="28" x2="16" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="16" y1="28" x2="34" y2="10" stroke="#10b981" stroke-width="2"/><line x1="34" y1="10" x2="60" y2="10" stroke="#10b981" stroke-width="2"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'bear_call', name:'Bear Call Spread',
+   svg:'<line x1="0" y1="10" x2="16" y2="10" stroke="#10b981" stroke-width="2"/><line x1="16" y1="10" x2="34" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="34" y1="28" x2="60" y2="28" stroke="#ef4444" stroke-width="2"/>',
+   legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'bull_put', name:'Bull Put Spread',
+   svg:'<line x1="0" y1="14" x2="26" y2="14" stroke="#10b981" stroke-width="2"/><line x1="26" y1="14" x2="44" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="44" y1="28" x2="60" y2="28" stroke="#ef4444" stroke-width="2"/>',
+   legs:[{action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'bear_put', name:'Bear Put Spread',
+   svg:'<line x1="0" y1="28" x2="16" y2="28" stroke="#ef4444" stroke-width="2"/><line x1="16" y1="28" x2="34" y2="10" stroke="#10b981" stroke-width="2"/><line x1="34" y1="10" x2="60" y2="10" stroke="#10b981" stroke-width="2"/>',
+   legs:[{action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'put_ratio', name:'Put Ratio Spread',
+   svg:'<polyline points="0,28 25,16 30,8 45,28 60,28" stroke="#10b981" stroke-width="2" fill="none"/>',
+   legs:[{action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'batman', name:'Batman Strategy',
+   svg:'<polyline points="0,28 10,28 15,8 22,20 30,8 38,20 45,8 50,28 60,28" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.05)"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM+200',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-200',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'short_call', name:'Short Call',
+   svg:'<line x1="0" y1="12" x2="18" y2="12" stroke="#ef4444" stroke-width="2"/><polyline points="18,12 38,30 60,30" stroke="#ef4444" stroke-width="2" fill="none"/>',
+   legs:[{action:'SELL',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'long_strdl', name:'Long Straddle',
+   svg:'<polyline points="0,8 22,8 30,28 38,8 60,8" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'long_strng', name:'Long Strangle',
+   svg:'<polyline points="0,8 12,8 22,28 38,28 48,8 60,8" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.06)"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'long_ifly', name:'Long Iron Fly',
+   svg:'<polyline points="0,8 14,8 24,28 36,28 46,8 60,8" stroke="#ef4444" stroke-width="2" fill="rgba(239,68,68,0.06)"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'short_put', name:'Short Put',
+   svg:'<polyline points="0,30 22,30 42,12" stroke="#10b981" stroke-width="2" fill="none"/><line x1="42" y1="12" x2="60" y2="12" stroke="#10b981" stroke-width="2"/>',
+   legs:[{action:'SELL',type:'PE',strike:'ATM',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
+  {id:'long_ic', name:'Long Iron Condor',
+   svg:'<polyline points="0,8 10,8 18,28 28,28 38,28 46,8 60,8" stroke="#ef4444" stroke-width="2" fill="rgba(239,68,68,0.06)"/>',
+   legs:[{action:'BUY',type:'CE',strike:'ATM+100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'CE',strike:'ATM+200',sl:0,slU:'%',tp:0,tpU:'%'},
+         {action:'SELL',type:'PE',strike:'ATM-200',sl:0,slU:'%',tp:0,tpU:'%'}]},
+
   {id:'admin_s1', name:'Strategy 1', is_admin:true,
    svg:'<polyline points="0,28 15,28 25,10 35,20 45,10 60,28" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
    logic:{idx:'SENSEX',startTime:'09:18:00',endTime:'11:59:00',mtmSL:4000},
@@ -2681,27 +2734,6 @@ var RM_STRATS = [
    logic:{idx:'SENSEX',startTime:'12:00:00',endTime:'15:09:00',mtmSL:4000},
    legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
          {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-
-
-  {id:'ind_ema', name:'EMA', is_indicator:true,
-   svg:'<polyline points="0,28 15,20 30,10 45,18 60,8" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>',
-   indicator_config:{type:'EMA',timeframe:'5 Min',length:9,signal:'BUY'}},
-
-  {id:'ind_supertrend', name:'SuperTrend', is_indicator:true,
-   svg:'<polyline points="0,28 10,28 20,10 30,10 40,28 50,28 60,10" stroke="#10b981" stroke-width="2" fill="rgba(16,185,129,0.07)"/>',
-   indicator_config:{type:'SuperTrend',timeframe:'5 Min',length:10,factor:3,signal:'BUY'}},
-
-  {id:'ind_rsi', name:'RSI', is_indicator:true,
-   svg:'<polyline points="0,20 10,10 20,25 30,8 40,22 50,12 60,20" stroke="#a78bfa" stroke-width="2" fill="none"/><line x1="0" y1="10" x2="60" y2="10" stroke="#ef4444" stroke-width="1" stroke-dasharray="2,2"/><line x1="0" y1="28" x2="60" y2="28" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>',
-   indicator_config:{type:'RSI',timeframe:'5 Min',length:14,upper:70,lower:30,use_middle:false,signal:'BUY'}},
-
-  {id:'ind_cpr', name:'CPR', is_indicator:true,
-   svg:'<line x1="0" y1="14" x2="60" y2="14" stroke="#f59e0b" stroke-width="2"/><line x1="0" y1="20" x2="60" y2="20" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/><line x1="0" y1="8" x2="60" y2="8" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>',
-   indicator_config:{type:'CPR',timeframe:'5 Min',signal:'BUY'}},
-
-  {id:'ind_vwap', name:'VWAP', is_indicator:true,
-   svg:'<polyline points="0,20 10,18 20,22 30,16 40,24 50,14 60,18" stroke="#4fc3f7" stroke-width="2" fill="none"/><line x1="0" y1="20" x2="60" y2="20" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>',
-   indicator_config:{type:'VWAP',timeframe:'5 Min',signal:'BUY'}},
 ];;
 
 function renderRmGrid(){
@@ -2739,6 +2771,34 @@ function createRmStrategy(id){
       el=document.getElementById('indFactor'); if(el&&cfg.factor) el.value=cfg.factor;
       el=document.getElementById('indSignal'); if(el&&cfg.signal) el.value=cfg.signal;
       el=document.getElementById('csName'); if(el) el.value=tmpl.name;
+      var rmSymEl=document.getElementById('rmSymbol');
+      var rmSymVal=rmSymEl?rmSymEl.value:'NIFTY';
+      var idxEl=document.getElementById('csIdx'); if(idxEl) idxEl.value=rmSymVal;
+      legs=[{id:Date.now(),action:'BUY',prod:'MIS',type:'CE',lots:1,baseLots:1,
+             stType:'Strike Type',strike:'ATM',premVal:0,sl:20,slU:'%',tp:40,tpU:'%',
+             tslConfig:null,resl:0,rentryType:'Re-Entry',expiry:'Weekly',
+             wntConfig:{mode:'Immediate',value:0}}];
+      renderLegs();
+    },200);
+    return;
+  }
+
+  // ── Indicator card ──────────────────────────────────────
+  if(tmpl.is_indicator){
+    showPage('cs',null);
+    setTimeout(function(){
+      switchStratType('indicator');
+      var cfg=tmpl.indicator_config||{};
+      var el;
+      el=document.getElementById('indType'); if(el){el.value=cfg.type||'EMA';onIndTypeChange();}
+      el=document.getElementById('indTimeframe'); if(el) el.value=cfg.timeframe||'5 Min';
+      el=document.getElementById('indLength'); if(el&&cfg.length) el.value=cfg.length;
+      el=document.getElementById('indFactor'); if(el&&cfg.factor) el.value=cfg.factor;
+      el=document.getElementById('indSignal'); if(el&&cfg.signal) el.value=cfg.signal;
+      el=document.getElementById('csName'); if(el) el.value=tmpl.name;
+      var rmSymEl=document.getElementById('rmSymbol');
+      var rmSymVal=rmSymEl?rmSymEl.value:'NIFTY';
+      var idxEl=document.getElementById('csIdx'); if(idxEl) idxEl.value=rmSymVal;
       legs=[{id:Date.now(),action:'BUY',prod:'MIS',type:'CE',lots:1,baseLots:1,
              stType:'Strike Type',strike:'ATM',premVal:0,sl:20,slU:'%',tp:40,tpU:'%',
              tslConfig:null,resl:0,rentryType:'Re-Entry',expiry:'Weekly',
@@ -2820,6 +2880,32 @@ function createRmStrategy(id){
   }
 
   // ── Time based DIY — open modal ───────────────────────────
+  showPage('cs',null);
+  setTimeout(function(){
+    switchStratType('time');
+    var el;
+    el=document.getElementById('csName'); if(el) el.value=s.name;
+    el=document.getElementById('csIdx');  if(el) el.value=s.idx;
+    legs=s.legs; renderLegs();
+  },200);
+  return;
+
+  // ── Admin hidden — direct add ───────────────────────────
+  if(tmpl.is_admin){
+    var card=document.querySelector('.rm-card[onclick*="'+id+'"]');
+    if(card){card.style.opacity='0.6';card.style.pointerEvents='none';}
+    fetch('/api/strategies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)})
+    .then(function(r){return r.json();}).then(function(d){
+      if(card){card.style.opacity='';card.style.pointerEvents='';}
+      if(d.ok){
+        if(card){card.style.borderColor='var(--gr)';card.style.background='rgba(16,185,129,.18)';
+          setTimeout(function(){card.style.borderColor='';card.style.background='';},1800);}
+        addLog('SYSTEM',s.name,'Created: '+s.name);poll();
+      }else{alert('Error: '+d.msg);}
+    }).catch(function(e){if(card){card.style.opacity='';card.style.pointerEvents='';}alert('Error: '+e);});
+    return;
+  }
+  // ── Time based DIY — open modal ─────────────────────────
   showPage('cs',null);
   setTimeout(function(){
     switchStratType('time');
@@ -4319,6 +4405,21 @@ function onIndTypeChange(){
   } else if(type==='CPR'||type==='VWAP'){
     if(lengthWrap) lengthWrap.style.display='none';
   }
+}
+
+// ── INDICATOR TYPE CHANGE ────────────────────────────────────
+function onIndTypeChange(){
+  var type=document.getElementById('indType').value;
+  var lw=document.getElementById('indLengthWrap');
+  var fw=document.getElementById('indFactorWrap');
+  var rw=document.getElementById('indRsiWrap');
+  if(lw) lw.style.display='';
+  if(fw) fw.style.display='none';
+  if(rw) rw.style.display='none';
+  if(type==='EMA'){document.getElementById('indLength').value=9;}
+  else if(type==='SuperTrend'){document.getElementById('indLength').value=10;if(fw)fw.style.display='';document.getElementById('indFactor').value=3;}
+  else if(type==='RSI'){document.getElementById('indLength').value=14;if(rw)rw.style.display='';}
+  else if(type==='CPR'||type==='VWAP'){if(lw)lw.style.display='none';}
 }
 
 // ── MODALS ───────────────────────────────────────────────────
