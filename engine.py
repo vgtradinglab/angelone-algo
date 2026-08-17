@@ -71,12 +71,12 @@ MCX_LOT_SIZES = {
 }
 
 INDEX_TOKEN_MAP = {
-    "NIFTY"      : {"index_token":"256265","index_exch":"NSE","index_ws_key":"NSE:NIFTY 50"},
-    "BANKNIFTY"  : {"index_token":"260105","index_exch":"NSE","index_ws_key":"NSE:NIFTY BANK"},
-    "FINNIFTY"   : {"index_token":"257801","index_exch":"NSE","index_ws_key":"NSE:NIFTY FIN SERVICE"},
-    "MIDCPNIFTY" : {"index_token":"288009","index_exch":"NSE","index_ws_key":"NSE:NIFTY MID SELECT"},
-    "SENSEX"     : {"index_token":"265",   "index_exch":"BSE","index_ws_key":"BSE:SENSEX"},
-    "BANKEX"     : {"index_token":"274177","index_exch":"BSE","index_ws_key":"BSE:BANKEX"},
+    "NIFTY"      : {"index_token":"26000", "index_exch":"NSE","index_ws_key":"NSE:NIFTY 50"},
+    "BANKNIFTY"  : {"index_token":"26009", "index_exch":"NSE","index_ws_key":"NSE:NIFTY BANK"},
+    "FINNIFTY"   : {"index_token":"26037", "index_exch":"NSE","index_ws_key":"NSE:NIFTY FIN SERVICE"},
+    "MIDCPNIFTY" : {"index_token":"26074", "index_exch":"NSE","index_ws_key":"NSE:NIFTY MID SELECT"},
+    "SENSEX"     : {"index_token":"1",     "index_exch":"BSE","index_ws_key":"BSE:SENSEX"},
+    "BANKEX"     : {"index_token":"99919003","index_exch":"BSE","index_ws_key":"BSE:BANKEX"},
 }
 
 # Zerodha CSV 'name' field for F&O contracts — may differ from our instrument key.
@@ -1153,11 +1153,15 @@ class LegState:
         import time as _t
         _cache = _rest_ltp_cache
         cache_entry = _cache.get(self.token, (0.0, 0.0))
-        if (_t.time() - cache_entry[1]) > 30 and hasattr(broker, "get_rest_ltp"):
+        try:
+            _b2 = broker
+        except NameError:
+            _b2 = None
+        if (_t.time() - cache_entry[1]) > 30 and _b2 and hasattr(_b2, "get_rest_ltp"):
             try:
                 sym = self.symbol
                 for exch in ("MCX","NFO","BFO","NSE","BSE"):
-                    ltp = broker.get_rest_ltp(exch, sym, self.token)
+                    ltp = _b2.get_rest_ltp(exch, sym, self.token)
                     if ltp > 0:
                         price_store.update(self.token, ltp)
                         _cache[self.token] = (ltp, _t.time())
