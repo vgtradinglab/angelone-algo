@@ -670,7 +670,7 @@ def fmt_sym(raw: str) -> str:
         return mf.group(1) + ' FUT'
 
     # Options primary: INSTRUMENT + DATE + 4-6 digit STRIKE + CE/PE
-    mo = re.match(r'^([A-Z]+)(' + D2 + r')(\d{4,6}(?:\.\d+)?)(CE|PE)$', u)
+    mo = re.match(r'^([A-Z]+)(' + D2 + r')(\d{2,6}(?:\.\d+)?)(CE|PE)$', u)
     if mo:
         try:    strike = str(int(float(mo.group(3))))
         except: strike = mo.group(3)
