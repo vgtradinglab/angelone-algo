@@ -1776,9 +1776,15 @@ class StrategyRunner:
         start_t    = logic.get("startTime", "09:20:00")
         end_t      = logic.get("endTime", "15:15:00")
         days       = self.s.get("days", [True]*5+[False,False])
-        ind_cfg    = self.s.get("indicator_config", {})
-        ind_type   = ind_cfg.get("type", "EMA")
-        timeframe  = ind_cfg.get("timeframe", "5 Min")
+        ind_cfg    = self.s.get("indicator_config", {}) or {}
+        if isinstance(ind_cfg, list):
+            _first = ind_cfg[0] if ind_cfg else {}
+            ind_type  = _first.get("type", "EMA") if isinstance(_first, dict) else "EMA"
+            timeframe = _first.get("timeframe", "5 Min") if isinstance(_first, dict) else "5 Min"
+        else:
+            if not isinstance(ind_cfg, dict): ind_cfg = {}
+            ind_type  = ind_cfg.get("type", "EMA")
+            timeframe = ind_cfg.get("timeframe", "5 Min")
         IST        = _pytz.timezone("Asia/Kolkata")
 
         # Get exchange for candle fetch
@@ -1787,7 +1793,7 @@ class StrategyRunner:
         exchange   = "MCX" if is_mcx else ("BSE" if info.get("exchange","NSE") in ("BSE","BFO") else "NSE")
 
         self.log.info(f"{self.name}: Indicator strategy started — {ind_type} {timeframe}")
-        self._update_status("READY")
+        self.status = "READY"
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
 
@@ -1810,7 +1816,7 @@ class StrategyRunner:
             # After end time — exit and stop
             if now_s >= end_t:
                 self.log.info(f"{self.name}: End time reached — stopping indicator strategy.")
-                self._update_status("EXITED")
+                self.status = "EXITED"
                 break
 
             # Check if status is still running
@@ -1821,6 +1827,13 @@ class StrategyRunner:
                 # Get all indicator configs — support multiple indicators
                 ind_panels = ind_cfg if isinstance(ind_cfg, list) else [ind_cfg]
 
+                # For MCX: use futures trading symbol for candle fetch
+                _candle_sym = instr
+                if is_mcx and option_chain:
+                    for _c in option_chain:
+                        if str(_c.get("instrument_type","")).upper() == "FUT":
+                            _candle_sym = str(_c.get("tradingsymbol", instr))
+                            break
                 def _get_signal_for_panel(p):
                     """Get signal for one indicator panel."""
                     ptype = p.get("type","EMA")
@@ -1829,19 +1842,19 @@ class StrategyRunner:
                     raw_signal = None
                     if ptype == "EMA":
                         from indicators.ema import get_signal
-                        raw_signal, _, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",9)))
+                        raw_signal, _, _ = get_signal(self.broker, exchange, _candle_sym, ptf, length=int(p.get("length",9)))
                     elif ptype == "SuperTrend":
                         from indicators.supertrend import get_signal
-                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",10)), factor=float(p.get("factor",3)))
+                        raw_signal, _ = get_signal(self.broker, exchange, _candle_sym, ptf, length=int(p.get("length",10)), factor=float(p.get("factor",3)))
                     elif ptype == "RSI":
                         from indicators.rsi import get_signal
-                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf, length=int(p.get("length",14)), upper=float(p.get("upper",70)), lower=float(p.get("lower",30)), use_middle=bool(p.get("use_middle",False)), middle=float(p.get("middle",50)))
+                        raw_signal, _ = get_signal(self.broker, exchange, _candle_sym, ptf, length=int(p.get("length",14)), upper=float(p.get("upper",70)), lower=float(p.get("lower",30)), use_middle=bool(p.get("use_middle",False)), middle=float(p.get("middle",50)))
                     elif ptype == "CPR":
                         from indicators.cpr import get_signal
-                        raw_signal, _, _, _ = get_signal(self.broker, exchange, instr, ptf)
+                        raw_signal, _, _, _ = get_signal(self.broker, exchange, _candle_sym, ptf)
                     elif ptype == "VWAP":
                         from indicators.vwap import get_signal
-                        raw_signal, _ = get_signal(self.broker, exchange, instr, ptf)
+                        raw_signal, _ = get_signal(self.broker, exchange, _candle_sym, ptf)
                     # Map raw signal to ABOVE/BELOW
                     if raw_signal == "BUY": raw_signal = "ABOVE"
                     elif raw_signal == "SELL": raw_signal = "BELOW"
@@ -1860,7 +1873,7 @@ class StrategyRunner:
 
                 if signal and candle_ts != last_signal_candle:
                     last_signal_candle = candle_ts
-                    self.log.info(f"{self.name}: Signal={signal} Value={val} — executing legs")
+                    self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"
                     # Execute legs same as time based strategy
                     from concurrent.futures import ThreadPoolExecutor, as_completed
