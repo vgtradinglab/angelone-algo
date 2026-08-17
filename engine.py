@@ -1829,11 +1829,25 @@ class StrategyRunner:
 
                 # For MCX: use futures trading symbol for candle fetch
                 _candle_sym = instr
-                if is_mcx and option_chain:
-                    for _c in option_chain:
+                if is_mcx:
+                    # Try chain first
+                    for _c in (option_chain or []):
                         if str(_c.get("instrument_type","")).upper() == "FUT":
                             _candle_sym = str(_c.get("tradingsymbol", instr))
                             break
+                    # Fallback: find futures from instrument master
+                    if _candle_sym == instr and hasattr(self.broker, "_instruments"):
+                        for _key, _info in self.broker._instruments.items():
+                            if (_info.get("name","").upper() == instr.upper() and
+                                _info.get("opttype","") in ("FUTCOM","FUTIDX","FUTSTK") and
+                                _info.get("expiry","")):
+                                from datetime import datetime, date
+                                try:
+                                    _exp_d = datetime.strptime(_info["expiry"],"%d%b%Y").date()
+                                    if _exp_d >= date.today():
+                                        _candle_sym = _info.get("symbol", instr)
+                                        break
+                                except: pass
                 def _get_signal_for_panel(p):
                     """Get signal for one indicator panel."""
                     ptype = p.get("type","EMA")
