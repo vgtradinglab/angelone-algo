@@ -4460,6 +4460,11 @@ class Engine:
                 self.log.info("[Engine] Resubscribing all tokens for fresh live ticks.")
                 self.broker._ws_connected.clear()
                 self.broker._sub_tokens = []
+                # Force fresh WebSocket on resubscribe — clears stale LVC cache
+                try:
+                    if self.broker._ws: self.broker._ws.close_connection()
+                except: pass
+                self.broker._ws = None
                 self.broker.subscribe_feed(combined, lambda tok, ltp: price_store.update(tok, ltp))
                 if hasattr(self.broker, "wait_for_connection"):
                     self.broker.wait_for_connection(timeout=30)
