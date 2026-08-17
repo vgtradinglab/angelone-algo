@@ -490,7 +490,8 @@ def nearest_expiry_from_broker(broker, instrument: str,
 
     today     = date.today()
     # Get all available expiry dates from broker live data
-    all_exps_str  = broker.get_available_expiries(instrument)
+    _is_mcx = INSTRUMENTS.get(instrument,{}).get("is_mcx",False)
+    all_exps_str  = broker.get_available_expiries(instrument, opt_only=_is_mcx) if hasattr(broker,"get_available_expiries") and "opt_only" in broker.get_available_expiries.__code__.co_varnames else broker.get_available_expiries(instrument)
     all_exps_date = [(s, parse_exp(s)) for s in all_exps_str]
     all_exps_date = [(s, d) for s, d in all_exps_date if d is not None]
     all_exps_date.sort(key=lambda x: x[1])       # sort oldest → newest
@@ -4293,9 +4294,15 @@ class Engine:
                 #   This works for ALL instruments regardless of has_options flag
                 #   (GOLDM, CRUDEOIL, GOLD, SILVER, NSE/BSE futures etc.)
                 # - Options only → fetch options chain only
-                if has_fut_leg:
+                if has_fut_leg or info.get("is_mcx"):
                     opt_chain = self.broker.get_option_chain(instr, exp_str)
-                    fut_chain = self.broker.get_fut_chain(instr, exp_str)
+                    # For MCX: futures use different expiry than options
+                    _fut_exp = exp_str
+                    if info.get("is_mcx"):
+                        _all_fut_exps = [e for e in (self.broker.get_available_expiries(instr) or [])
+                                         if self.broker.get_fut_chain(instr, e)]
+                        if _all_fut_exps: _fut_exp = _all_fut_exps[0]
+                    fut_chain = self.broker.get_fut_chain(instr, _fut_exp)
                     # Combine — deduplicate by instrument_token
                     seen_toks = set()
                     chain_et  = []
@@ -4350,6 +4357,22 @@ class Engine:
             sub_chain = chain
             if info.get("is_mcx") and chain:
                 _atm = get_atm_strike(instr, chain)
+                # If ATM not yet available, get futures LTP via REST
+                if _atm <= 0:
+                    for _c in chain:
+                        if str(_c.get("instrument_type","")).upper() == "FUT":
+                            _ftok = str(_c.get("instrument_token",""))
+                            _fsym = str(_c.get("tradingsymbol",""))
+                            if _ftok and hasattr(self.broker,"get_rest_ltp"):
+                                try:
+                                    _fltp = self.broker.get_rest_ltp("MCX",_fsym,_ftok)
+                                    if _fltp > 0:
+                                        price_store.update(_ftok, _fltp)
+                                        _atm = get_atm_strike(instr, chain)
+                                        self.log.info(f"[MCX] {instr} REST futures LTP={_fltp:.0f} ATM={_atm:.0f}")
+                                        break
+                                except Exception as _re:
+                                    self.log.warning(f"[MCX] REST LTP failed: {_re}")
                 if _atm > 0:
                     _tick = info.get("tick", 1.0)
                     # Get sorted unique strikes

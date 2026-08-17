@@ -149,22 +149,42 @@ class AngelOneAdapter:
                         "lot_size":int(info.get("lotsize",1) or 1),
                         "expiry":info["expiry"],
                         "tick_size":float(info.get("tick_size",0.05) or 0.05),
+                        "instrument_type":"FUT",
+                        "strike":0,
                     })
         except Exception as e:
             _log.error(f"[AngelOne] get_fut_chain error: {e}")
         return results
 
-    def get_available_expiries(self,instrument):
+    def get_available_expiries(self,instrument,opt_only=False):
         expiries=set()
         try:
+            from datetime import datetime, date
+            today=date.today()
+            # For MCX: separate options(OPTFUT) from futures(FUTCOM)
+            # opt_only=True returns only OPTFUT expiries (for option chain)
+            # opt_only=False returns all valid expiries
+            mcx_opt_types=("OPTFUT",)
+            mcx_fut_types=("FUTCOM",)
+            nse_types=("CE","PE","OPTIDX","OPTSTK","FUTIDX","FUTSTK","OPTFUT")
             for key,info in self._instruments.items():
-                if(info.get("name","").upper()==instrument.upper() and
-                   info.get("opttype","") in ("CE","PE","OPTIDX","OPTSTK","FUTIDX","FUTSTK","FUTCOM","OPTFUT") and
-                   info.get("expiry","")):
-                    expiries.add(info["expiry"])
+                if info.get("name","").upper()!=instrument.upper(): continue
+                ot=info.get("opttype","")
+                exp_str=info.get("expiry","")
+                if not exp_str: continue
+                if opt_only:
+                    if ot not in mcx_opt_types+("CE","PE","OPTIDX","OPTSTK"): continue
+                else:
+                    if ot not in mcx_opt_types+mcx_fut_types+("CE","PE","OPTIDX","OPTSTK","FUTIDX","FUTSTK"): continue
+                try:
+                    exp_d=datetime.strptime(exp_str,"%d%b%Y").date()
+                    if exp_d>=today:
+                        expiries.add(exp_str)
+                except: pass
+            return sorted(list(expiries), key=lambda x: datetime.strptime(x,"%d%b%Y"))
         except Exception as e:
             _log.error(f"[AngelOne] get_available_expiries error: {e}")
-        return sorted(list(expiries))
+            return []
 
     def supports_mcx_options(self): return True
 
