@@ -200,7 +200,7 @@ class AngelOneAdapter:
             exch_tokens={}
             for t in self._sub_tokens:
                 tok=str(t.get("instrument_token",""))
-                exch=t.get("exchange","NSE").upper()
+                exch=(t.get("exchange","") or t.get("exchange_segment","NSE")).upper()
                 exch=EXCHANGE_MAP.get(exch,exch)
                 etype=EXCHANGE_TYPE.get(exch,1)
                 if etype not in exch_tokens: exch_tokens[etype]=[]
@@ -262,7 +262,7 @@ class AngelOneAdapter:
                 exch_tokens={}
                 for t in tokens:
                     tok=str(t.get("instrument_token",""))
-                    exch=EXCHANGE_MAP.get(t.get("exchange","NSE").upper(),"NSE")
+                    exch=EXCHANGE_MAP.get((t.get("exchange","") or t.get("exchange_segment","NSE")).upper(),"NSE")
                     etype=EXCHANGE_TYPE.get(exch,1)
                     if etype not in exch_tokens: exch_tokens[etype]=[]
                     if tok: exch_tokens[etype].append(tok)

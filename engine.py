@@ -4156,10 +4156,10 @@ class Engine:
                     "exchange": _iexch,
                     "tradingsymbol": _instr,
                 })
-        self.broker.subscribe_feed(
-            _default_index_tokens,
-            lambda tok, ltp: price_store.update(tok, ltp))
-        _log.info(f"[Engine] Subscribed {len(_default_index_tokens)} index tokens at startup.")
+        # Skip early index-only subscription for AngelOne — full subscription
+        # (index + options) happens together at line below after chain is built.
+        # Creating two WebSocket connections kills the first one via 429.
+        _log.info(f"[Engine] Index tokens ready: {len(_default_index_tokens)} — will subscribe with options.")
         # Wire notifier into broker so WS alerts can fire Telegram
         if hasattr(self.broker, 'set_notifier'):
             self.broker.set_notifier(self.notifier)
