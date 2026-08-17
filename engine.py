@@ -1016,9 +1016,13 @@ def get_atm_strike(instrument: str, chain: list = None) -> float:
                 return float(atm)
 
     # ── Method 3 (NSE/BSE): REST LTP fallback ───────────────
-    if ws_key and hasattr(broker, "get_rest_ltp"):
+    try:
+        _b = broker
+    except NameError:
+        _b = None
+    if ws_key and _b and hasattr(_b, "get_rest_ltp"):
         try:
-            spot = broker.get_rest_ltp("NSE", ws_key.split(":")[-1], idx_tok or "")
+            spot = _b.get_rest_ltp("NSE", ws_key.split(":")[-1], idx_tok or "")
             if spot > 0:
                 if idx_tok: price_store.update(idx_tok, spot)
                 atm = round(spot / interval) * interval
@@ -4530,14 +4534,14 @@ class Engine:
                         if open_legs:
                             r.log.error(f"EMERGENCY EXIT: {len(open_legs)} open legs after crash")
                             r._exit_all("Strategy crash — emergency exit")
-                            r.notifier.telegram(
+                            r.notify.telegram(
                                 f"🚨 [CRASH RECOVERY] | {r.name}\n\n"
                                 f"Strategy thread crashed unexpectedly.\n"
                                 f"Error: {str(_exc)[:200]}\n\n"
                                 f"Emergency exit executed for {len(open_legs)} open leg(s).\n"
                                 f"Please check positions and restart strategy.")
                         else:
-                            r.notifier.telegram(
+                            r.notify.telegram(
                                 f"⚠️ [STRATEGY ERROR] | {r.name}\n\n"
                                 f"Strategy thread ended with error:\n{str(_exc)[:300]}\n"
                                 f"No open positions at time of crash.")

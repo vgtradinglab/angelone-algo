@@ -109,19 +109,28 @@ class AngelOneAdapter:
         results=[]
         try:
             for key,info in self._instruments.items():
-                if(info.get("name","").upper()==instrument.upper() and
-                   info.get("expiry","")==expiry_str and
-                   info.get("opttype","") in ("CE","PE","OPTIDX","OPTSTK")):
-                    results.append({
-                        "instrument_token":info["token"],
-                        "tradingsymbol":info["symbol"],
-                        "exchange":info["exchange"],
-                        "strike":float(info.get("strike",0) or 0)/100,
-                        "instrument_type":info["opttype"],
-                        "lot_size":int(info.get("lotsize",1) or 1),
-                        "expiry":info["expiry"],
-                        "tick_size":float(info.get("tick_size",0.05) or 0.05),
-                    })
+                if info.get("name","").upper() != instrument.upper(): continue
+                if info.get("expiry","") != expiry_str: continue
+                opttype = info.get("opttype","")
+                sym     = info.get("symbol","").upper()
+                # Angel One uses OPTIDX/OPTSTK/OPTFUT — extract CE/PE from symbol
+                if opttype in ("OPTIDX","OPTSTK","OPTFUT"):
+                    if sym.endswith("CE"):   opttype = "CE"
+                    elif sym.endswith("PE"): opttype = "PE"
+                    else: continue
+                elif opttype not in ("CE","PE"):
+                    continue
+                results.append({
+                    "instrument_token":info["token"],
+                    "tradingsymbol":info["symbol"],
+                    "exchange":info["exchange"],
+                    "strike":float(info.get("strike",0) or 0)/100,
+                    "instrument_type":opttype,
+                    "name":info.get("name",""),
+                    "lot_size":int(info.get("lotsize",1) or 1),
+                    "expiry":info["expiry"],
+                    "tick_size":float(info.get("tick_size",0.05) or 0.05),
+                })
         except Exception as e:
             _log.error(f"[AngelOne] get_option_chain error: {e}")
         return results
@@ -150,7 +159,7 @@ class AngelOneAdapter:
         try:
             for key,info in self._instruments.items():
                 if(info.get("name","").upper()==instrument.upper() and
-                   info.get("opttype","") in ("CE","PE","OPTIDX","OPTSTK","FUTIDX","FUTSTK","FUTCOM") and
+                   info.get("opttype","") in ("CE","PE","OPTIDX","OPTSTK","FUTIDX","FUTSTK","FUTCOM","OPTFUT") and
                    info.get("expiry","")):
                     expiries.add(info["expiry"])
         except Exception as e:
@@ -214,7 +223,7 @@ class AngelOneAdapter:
         _log.warning(f"[AngelOne] WebSocket error: {error}")
         self._feed_healthy=False
 
-    def _on_close(self,wsapp):
+    def _on_close(self,wsapp,close_status_code=None,close_msg=None):
         _log.warning("[AngelOne] WebSocket closed.")
         self._feed_healthy=False
         self._ws_connected.clear()
@@ -238,6 +247,12 @@ class AngelOneAdapter:
                     _log.warning("[AngelOne] Feed stale — reconnecting...")
                     self._feed_healthy=False
                     if self._notifier: self._notifier.telegram("[Angel One] Feed stale — reconnecting...")
+                    try:
+                        if self._ws: self._ws.close_connection()
+                    except Exception: pass
+                    self._ws=None
+                    self._ws_connected.clear()
+                    time.sleep(3)
                     self._connect_websocket()
             except Exception as e: _log.error(f"[AngelOne] Watchdog error: {e}")
 
