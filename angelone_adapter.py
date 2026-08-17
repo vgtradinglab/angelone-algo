@@ -190,11 +190,35 @@ class AngelOneAdapter:
 
     def subscribe_feed(self,tokens,on_tick):
         self._on_tick_cb=on_tick
-        self._sub_tokens=tokens
         if not self._worker_started:
             self._worker_started=True
             threading.Thread(target=self._tick_worker,daemon=True,name="TickWorker").start()
-        self._connect_websocket()
+        # Deduplicate — only new tokens not already subscribed
+        existing=set(str(t.get("instrument_token","")) for t in self._sub_tokens)
+        new_tokens=[t for t in tokens if str(t.get("instrument_token","")) not in existing]
+        if not new_tokens and self._ws is not None:
+            _log.info("[AngelOne] No new tokens to subscribe")
+            return
+        self._sub_tokens=self._sub_tokens+new_tokens
+        # First call: start WebSocket. Subsequent: add to live connection.
+        if self._ws is None:
+            self._connect_websocket()
+        else:
+            try:
+                exch_tokens={}
+                for t in new_tokens:
+                    tok=str(t.get("instrument_token",""))
+                    exch=(t.get("exchange","") or t.get("exchange_segment","NSE")).upper()
+                    exch=EXCHANGE_MAP.get(exch,exch)
+                    etype=EXCHANGE_TYPE.get(exch,1)
+                    if etype not in exch_tokens: exch_tokens[etype]=[]
+                    if tok: exch_tokens[etype].append(tok)
+                token_list=[{"exchangeType":k,"tokens":v} for k,v in exch_tokens.items() if v]
+                if token_list and self._ws.wsapp:
+                    self._ws.subscribe("algo01",1,token_list)
+                    _log.info(f"[AngelOne] Added {len(new_tokens)} tokens to live feed (total: {len(self._sub_tokens)})")
+            except Exception as e:
+                _log.warning(f"[AngelOne] Add tokens failed: {e}")
         if not self._watchdog_started:
             self._watchdog_started=True
             threading.Thread(target=self._watchdog,daemon=True,name="WSWatchdog").start()
