@@ -205,18 +205,8 @@ class AngelOneAdapter:
             self._connect_websocket()
         else:
             try:
-                exch_tokens={}
-                for t in new_tokens:
-                    tok=str(t.get("instrument_token",""))
-                    exch=(t.get("exchange","") or t.get("exchange_segment","NSE")).upper()
-                    exch=EXCHANGE_MAP.get(exch,exch)
-                    etype=EXCHANGE_TYPE.get(exch,1)
-                    if etype not in exch_tokens: exch_tokens[etype]=[]
-                    if tok: exch_tokens[etype].append(tok)
-                token_list=[{"exchangeType":k,"tokens":v} for k,v in exch_tokens.items() if v]
-                if token_list and self._ws.wsapp:
-                    self._ws.subscribe("algo01",1,token_list)
-                    _log.info(f"[AngelOne] Added {len(new_tokens)} tokens to live feed (total: {len(self._sub_tokens)})")
+                self._subscribe_tokens(new_tokens)
+                _log.info(f"[AngelOne] Added {len(new_tokens)} tokens to live feed (total: {len(self._sub_tokens)})")
             except Exception as e:
                 _log.warning(f"[AngelOne] Add tokens failed: {e}")
         if not self._watchdog_started:
@@ -235,24 +225,41 @@ class AngelOneAdapter:
         except Exception as e:
             _log.error(f"[AngelOne] WebSocket connect error: {e}")
 
+    def _subscribe_tokens(self,tokens_list):
+        """Subscribe tokens in batches of 999 — AngelOne limit is 1000 per call."""
+        if not tokens_list: return
+        # Build flat list of (exchangeType, token) pairs
+        all_pairs=[]
+        for t in tokens_list:
+            tok=str(t.get("instrument_token",""))
+            exch=(t.get("exchange","") or t.get("exchange_segment","NSE")).upper()
+            exch=EXCHANGE_MAP.get(exch,exch)
+            etype=EXCHANGE_TYPE.get(exch,1)
+            if tok: all_pairs.append((etype,tok))
+        # Batch into chunks of 999
+        BATCH=999
+        total=0
+        for i in range(0,len(all_pairs),BATCH):
+            batch=all_pairs[i:i+BATCH]
+            exch_tokens={}
+            for etype,tok in batch:
+                if etype not in exch_tokens: exch_tokens[etype]=[]
+                exch_tokens[etype].append(tok)
+            token_list=[{"exchangeType":k,"tokens":v} for k,v in exch_tokens.items() if v]
+            if token_list:
+                self._ws.subscribe("algo01",1,token_list)
+                total+=len(batch)
+                _log.info(f"[AngelOne] Subscribed batch {i//BATCH+1}: {len(batch)} tokens (total: {total})")
+                if i+BATCH<len(all_pairs):
+                    time.sleep(0.5)
+
     def _on_open(self,wsapp):
         _log.info("[AngelOne] WebSocket connected.")
         self._ws_connected.set()
         self._last_tick_ts=time.time()
         self._feed_healthy=True
         try:
-            exch_tokens={}
-            for t in self._sub_tokens:
-                tok=str(t.get("instrument_token",""))
-                exch=(t.get("exchange","") or t.get("exchange_segment","NSE")).upper()
-                exch=EXCHANGE_MAP.get(exch,exch)
-                etype=EXCHANGE_TYPE.get(exch,1)
-                if etype not in exch_tokens: exch_tokens[etype]=[]
-                if tok: exch_tokens[etype].append(tok)
-            token_list=[{"exchangeType":k,"tokens":v} for k,v in exch_tokens.items() if v]
-            if token_list:
-                self._ws.subscribe("algo01",1,token_list)
-                _log.info(f"[AngelOne] Subscribed {sum(len(v) for v in exch_tokens.values())} tokens.")
+            self._subscribe_tokens(self._sub_tokens)
         except Exception as e:
             _log.error(f"[AngelOne] Subscribe error: {e}")
 

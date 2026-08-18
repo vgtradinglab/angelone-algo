@@ -4245,8 +4245,11 @@ class Engine:
         # Replace strategies list with only active (non-holiday) ones
         strategies = active_strategies
 
-        # Fetch chains for all unique instruments
-        instruments = set(s.get("idx","NIFTY") for s in strategies)
+        # Fetch chains for ALL instruments at startup — not just active strategies
+        _ALL_INSTRS = {"NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY",
+                       "SENSEX",
+                       "CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
+        instruments = _ALL_INSTRS | set(s.get("idx","NIFTY") for s in strategies)
         all_tokens  = []
 
         # Collect all expiry types needed per instrument.
@@ -4282,7 +4285,8 @@ class Engine:
 
         for instr in instruments:
             info   = INSTRUMENTS.get(instr, {})
-            expiry_types = instr_expiry_types.get(instr, {"weekly"})
+            _default_et = "monthly" if info.get("is_mcx") else "weekly"
+            expiry_types = instr_expiry_types.get(instr, {_default_et})
 
             # Fetch one chain per unique expiry type needed for this instrument.
             # This ensures Leg1=Weekly and Leg2=Monthly both get correct contracts.
@@ -4420,17 +4424,41 @@ class Engine:
                     self.log.info(f"Chain {instr}: MCX WS filter ATM={_atm:.0f} "
                                   f"strikes {_lo_strike:.0f}-{_hi_strike:.0f} "
                                   f"→ {len(sub_chain)}/{len(chain)} tokens subscribed")
+            # NSE/BSE: filter to ±12% of spot for WS subscription
+            if not info.get("is_mcx") and chain:
+                _spot = 0.0
+                _idx_tok = info.get("index_token","")
+                if _idx_tok and hasattr(self.broker,"get_rest_ltp"):
+                    try:
+                        _exch = "BSE" if info.get("index_exch","NSE")=="BSE" else "NSE"
+                        _sym = info.get("index_ws_key","").split(":")[-1] if info.get("index_ws_key") else ""
+                        _spot = self.broker.get_rest_ltp(_exch,_sym,_idx_tok)
+                    except Exception as _e:
+                        self.log.warning(f"[SpotFilter] REST LTP failed for {instr}: {_e}")
+                if _spot > 0:
+                    _lo = _spot * 0.88
+                    _hi = _spot * 1.12
+                    sub_chain = [c for c in sub_chain
+                                 if c.get("instrument_type","").upper() == "FUT"
+                                 or (_lo <= float(c.get("strike",0) or 0) <= _hi)]
+                    self.log.info(f"Chain {instr}: ±12% filter spot={_spot:.0f} "
+                                  f"range={_lo:.0f}-{_hi:.0f} "
+                                  f"→ {len(sub_chain)}/{len(chain)} tokens subscribed")
+                else:
+                    self.log.warning(f"Chain {instr}: spot not available — full chain {len(sub_chain)} tokens")
             for item in sub_chain:
-                # Zerodha uses "instrument_token"; fallback to pSymbol (Kotak)
+                # instrument_token is the standard field for AngelOne
                 tok = str(item.get("instrument_token", item.get("pSymbol","")))
                 if tok:
                     all_tokens.append({"instrument_token": tok,
-                                       "exchange_segment": info.get("exchange","NFO")})
+                                       "exchange_segment": info.get("exchange","NFO"),
+                                       "instrument": instr})
             # Also subscribe index token for ATM calculation
             idx_tok = info.get("index_token","")
             if idx_tok:
                 all_tokens.append({"instrument_token": idx_tok,
-                                   "exchange_segment": info.get("index_exch","nse_cm")})
+                                   "exchange_segment": info.get("index_exch","nse_cm"),
+                                   "instrument": instr})
 
         if all_tokens:
             # Combine index tokens + option tokens — subscribe all at once
@@ -4443,7 +4471,8 @@ class Engine:
                 tok = itm.get("index_token", "")
                 if tok and tok not in seen_idx:
                     index_toks.append({"instrument_token": tok,
-                                       "exchange_segment": itm.get("index_exch","NSE")})
+                                       "exchange_segment": itm.get("index_exch","NSE"),
+                                       "instrument": instr_name})
                     seen_idx.add(tok)
 
             self.log.info(f"Index spot tokens to subscribe: "
