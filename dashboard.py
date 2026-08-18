@@ -1378,9 +1378,20 @@ def api_toggle_strategy(sid):
                                             chain = chain + _fut
                                             break
                                 engine_ref._option_chains[instr] = chain
+                            # Apply MCX ±20 strike filter before subscribing
+                            from engine import get_atm_strike
+                            sub_chain = chain
+                            if info.get("is_mcx") and chain:
+                                _atm = get_atm_strike(instr, chain)
+                                if _atm > 0:
+                                    _strikes = sorted(set(float(c.get("strike",0) or 0) for c in chain if c.get("strike")))
+                                    _atm_idx = min(range(len(_strikes)), key=lambda i: abs(_strikes[i]-_atm))
+                                    _lo = _strikes[max(0,_atm_idx-20)]
+                                    _hi = _strikes[min(len(_strikes)-1,_atm_idx+20)]
+                                    sub_chain = [c for c in chain if c.get("instrument_type","").upper()=="FUT" or (_lo<=float(c.get("strike",0) or 0)<=_hi)]
                             # Subscribe tokens first
                             opt_toks=[]; idx_toks=[]
-                            for item in chain:
+                            for item in sub_chain:
                                 pt = str(item.get("instrument_token","") or item.get("pSymbol","") or "")
                                 ex = str(item.get("exchange_segment","") or item.get("exchange","") or item.get("pExchSeg","NFO") or "NFO")
                                 if not pt: continue
