@@ -950,11 +950,15 @@ def resolve_strike(leg: dict, instrument: str, option_chain: list) -> tuple:
             best = min(pool, key=lambda c: abs(c["strike"] - target_sp))
 
         # If best candidate has no WebSocket price yet, try REST LTP
-        if best["ltp"] <= 0 and hasattr(self.broker, "get_rest_ltp"):
+        try:
+            _broker = self.broker if hasattr(self,"broker") else None
+        except NameError:
+            _broker = None
+        if best["ltp"] <= 0 and _broker and hasattr(_broker, "get_rest_ltp"):
             try:
                 instr_info = INSTRUMENTS.get(instrument, {})
                 exch = instr_info.get("exchange", "NFO")
-                ltp_val = self.broker.get_rest_ltp(exch, best["sym"], best["tok"])
+                ltp_val = _broker.get_rest_ltp(exch, best["sym"], best["tok"])
                 if ltp_val > 0:
                     price_store.update(best["tok"], ltp_val)
                     best = dict(best); best["ltp"] = ltp_val
