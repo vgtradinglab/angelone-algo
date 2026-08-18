@@ -1199,7 +1199,8 @@ def api_save_strategy():
                     engine_ref._option_chains[s.get("idx","NIFTY")] = chain
                 om = OrderManager(engine_ref.broker, engine_ref.dry_run,
                                   config_ref, notifier=engine_ref.notifier)
-                runner = StrategyRunner(s, engine_ref.broker, om,
+                import copy as _copy
+                runner = StrategyRunner(_copy.deepcopy(s), engine_ref.broker, om,
                                         engine_ref.notifier, engine_ref.dry_run)
                 engine_ref.runners[s["id"]] = runner
                 # ── Subscribe WS BEFORE starting thread (fix race condition) ──
@@ -1421,7 +1422,8 @@ def api_toggle_strategy(sid):
                             if idx_toks and hasattr(engine_ref.broker,"subscribe_index_feed"): engine_ref.broker.subscribe_index_feed(idx_toks)
                             _t.sleep(2)  # wait for prices
                             om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
-                            runner = StrategyRunner(strat, engine_ref.broker, om, engine_ref.notifier, engine_ref.dry_run)
+                            import copy as _copy
+                            runner = StrategyRunner(_copy.deepcopy(strat), engine_ref.broker, om, engine_ref.notifier, engine_ref.dry_run)
                             engine_ref.runners[strat["id"]] = runner
                             import threading as _thr
                             _thr.Thread(target=runner.run, args=(chain,), name=f"Strat_{strat['id']}", daemon=True).start()
@@ -1482,7 +1484,8 @@ def api_restart_strategy(sid):
             chain = _combined_chain if _combined_chain else engine_ref._option_chains.get(instr, [])
             engine_ref._option_chains[instr] = chain
             om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref)
-            new_runner = StrategyRunner(s, engine_ref.broker, om,
+            import copy as _copy
+            new_runner = StrategyRunner(_copy.deepcopy(s), engine_ref.broker, om,
                                         engine_ref.notifier, engine_ref.dry_run)
             engine_ref.runners[sid] = new_runner
             import threading
