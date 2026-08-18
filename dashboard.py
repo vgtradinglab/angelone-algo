@@ -1361,10 +1361,10 @@ def api_toggle_strategy(sid):
                                 return  # block strategy start
                             # ── End holiday check ──
                             instr = strat.get("idx","NIFTY")
+                            info = INSTRUMENTS.get(instr,{})
                             chain = engine_ref._option_chains.get(instr, [])
                             if not chain:
                                 from engine import nearest_expiry_from_broker, nearest_expiry, expiry_fmt
-                                info = INSTRUMENTS.get(instr,{})
                                 # Get expiry from local instrument master — instant, no API call
                                 _opt_only = info.get("is_mcx", False)
                                 _exps = engine_ref.broker.get_available_expiries(instr, opt_only=_opt_only)
