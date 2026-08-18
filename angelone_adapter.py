@@ -26,18 +26,10 @@ class AngelOneAdapter:
         self._last_tick_ts=0.0
         self._feed_healthy=False
         self._watchdog_started=self._watchdog_stop=False
-        self._ws=None
         self._ws_connected=threading.Event()
         self._tick_queue=queue.Queue(maxsize=10000)
         self._worker_started=self._worker_stop=False
         self._lock=threading.Lock()
-        # 3 WS connections: WS1=NIFTY+SENSEX, WS2=BANKNIFTY+FINNIFTY, WS3=MIDCPNIFTY+MCX
-        self._WS1_INSTRS={"NIFTY","SENSEX","BANKEX"}
-        self._WS2_INSTRS={"BANKNIFTY","FINNIFTY"}
-        self._WS3_INSTRS={"MIDCPNIFTY","CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
-        self._ws1_tokens=[]
-        self._ws2_tokens=[]
-        self._ws3_tokens=[]
 
     def set_notifier(self, n): self._notifier=n
     def get_last_order_error(self): return self._last_order_error
@@ -290,22 +282,14 @@ class AngelOneAdapter:
             threading.Thread(target=self._ws.connect,daemon=True,name="WSConnect").start()
             _log.info("[AngelOne] WebSocket connecting...")
         except Exception as e:
-            _log.error(f"[AngelOne] {name} connect error: {e}")
-            return None
+            _log.error(f"[AngelOne] WebSocket connect error: {e}")
 
     def _on_open(self,wsapp):
         """Called by SDK when WebSocket connects. Subscribe all accumulated tokens."""
         _log.info("[AngelOne] WebSocket connected.")
         self._ws_connected.set()
-
-    def _connect_websocket(self):
-        self._connect_all_websockets()
-
-    def _on_open_multi(self,wsapp,token_list,name):
-        _log.info(f"[AngelOne] {name} connected.")
         self._last_tick_ts=time.time()
         self._feed_healthy=True
-        self._ws_connected.set()
         try:
             self._subscribe_tokens(self._sub_tokens)
         except Exception as e:
@@ -341,35 +325,13 @@ class AngelOneAdapter:
             except queue.Empty: continue
             except Exception as e: _log.error(f"[AngelOne] Tick worker error: {e}")
 
-    def _reconnect_ws(self,num):
-        """Close and reconnect one WS connection."""
-        try:
-            if num==1:
-                try:
-                    if self._ws1: self._ws1.close_connection()
-                except: pass
-                self._ws1=self._make_ws("WS1",self._ws1_tokens)
-                self._ws=self._ws1
-            elif num==2:
-                try:
-                    if self._ws2: self._ws2.close_connection()
-                except: pass
-                self._ws2=self._make_ws("WS2",self._ws2_tokens)
-            elif num==3:
-                try:
-                    if self._ws3: self._ws3.close_connection()
-                except: pass
-                self._ws3=self._make_ws("WS3",self._ws3_tokens)
-        except Exception as e:
-            _log.error(f"[AngelOne] Reconnect WS{num} error: {e}")
-
     def _watchdog(self):
         """Monitor feed health. Reconnect if stale for 120 seconds."""
         while not self._watchdog_stop:
             time.sleep(30)
             try:
                 if time.time()-self._last_tick_ts>120 and self._connected:
-                    _log.warning("[AngelOne] Feed stale — reconnecting all connections...")
+                    _log.warning("[AngelOne] Feed stale — reconnecting...")
                     self._feed_healthy=False
                     if self._notifier:
                         self._notifier.telegram("[Angel One] Feed stale — reconnecting...")

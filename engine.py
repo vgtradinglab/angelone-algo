@@ -73,7 +73,10 @@ MCX_LOT_SIZES = {
 INDEX_TOKEN_MAP = {
     "NIFTY"      : {"index_token":"26000", "index_exch":"NSE","index_ws_key":"NSE:NIFTY 50"},
     "BANKNIFTY"  : {"index_token":"26009", "index_exch":"NSE","index_ws_key":"NSE:NIFTY BANK"},
+    "FINNIFTY"   : {"index_token":"26037", "index_exch":"NSE","index_ws_key":"NSE:NIFTY FIN SERVICE"},
+    "MIDCPNIFTY" : {"index_token":"26074", "index_exch":"NSE","index_ws_key":"NSE:NIFTY MID SELECT"},
     "SENSEX"     : {"index_token":"1",     "index_exch":"BSE","index_ws_key":"BSE:SENSEX"},
+    "BANKEX"     : {"index_token":"99919003","index_exch":"BSE","index_ws_key":"BSE:BANKEX"},
 }
 
 # Zerodha CSV 'name' field for F&O contracts — may differ from our instrument key.
@@ -82,7 +85,10 @@ INDEX_TOKEN_MAP = {
 ZERODHA_NAME_MAP = {
     "NIFTY"      : "NIFTY",               # NFO CSV: name=NIFTY
     "BANKNIFTY"  : "NIFTY BANK",          # NFO CSV: name=NIFTY BANK
+    "FINNIFTY"   : "NIFTY FIN SERVICE",   # NFO CSV: name=NIFTY FIN SERVICE
+    "MIDCPNIFTY" : "NIFTY MID SELECT",    # NFO CSV: name=NIFTY MID SELECT
     "SENSEX"     : "SENSEX",              # BFO CSV: name=SENSEX
+    "BANKEX"     : "BANKEX",              # BFO CSV: name=BANKEX
 }
 
 # Legacy alias kept for backward compatibility with any code that still
@@ -180,10 +186,10 @@ def refresh_instruments_from_broker(broker) -> None:
         # this platform trades index options and MCX commodities only.
         # MCX instruments are identified by exchange=="MCX" (no whitelist needed).
         _NSE_INDICES = {
-            "NIFTY","BANKNIFTY",
+            "NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY",
         }
         _BSE_INDICES = {
-            "SENSEX",
+            "SENSEX","BANKEX",
         }
         _ALLOWED_INDICES = _NSE_INDICES | _BSE_INDICES
         _ALLOWED_MCX = {"CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
@@ -292,11 +298,15 @@ def refresh_instruments_from_broker(broker) -> None:
 # items where pTrdSymbol says SENSEX but strike is in NIFTY range ~25000).
 # Set conservatively — well below any real-world level the index can reach.
 STRIKE_MIN = {
-    "NIFTY":       5000, "BANKNIFTY":  15000,     "SENSEX":     60000,     "GOLD": 10000, "SILVER": 10000, "CRUDEOIL": 1000,
+    "NIFTY":       5000, "BANKNIFTY":  15000, "FINNIFTY":    5000,
+    "MIDCPNIFTY":  2000, "SENSEX":     60000, "BANKEX":      50000,
+    "GOLD": 10000, "SILVER": 10000, "CRUDEOIL": 1000,
     "NATURALGAS": 50, "COPPER": 100, "ZINC": 50,
 }
 STRIKE_MAX = {
-    "NIFTY":      50000, "BANKNIFTY": 120000,     "SENSEX":    200000,     "GOLD": 200000, "SILVER": 300000, "CRUDEOIL": 30000,
+    "NIFTY":      50000, "BANKNIFTY": 120000, "FINNIFTY":   60000,
+    "MIDCPNIFTY": 30000, "SENSEX":    200000, "BANKEX":    120000,
+    "GOLD": 200000, "SILVER": 300000, "CRUDEOIL": 30000,
     "NATURALGAS": 1000,  "COPPER": 1200, "ZINC": 500,
 }
 
@@ -906,7 +916,8 @@ def resolve_strike(leg: dict, instrument: str, option_chain: list) -> tuple:
     else:
         atm = get_atm_strike(instrument, option_chain)
         if atm <= 0: return "", "", 0.0
-        interval = {"NIFTY":50,"BANKNIFTY":100,                    "SENSEX":100,"GOLD":100,"SILVER":100,
+        interval = {"NIFTY":50,"BANKNIFTY":100,"FINNIFTY":50,"MIDCPNIFTY":25,
+                    "SENSEX":100,"BANKEX":100,"GOLD":100,"SILVER":100,
                     "CRUDEOIL":100,"NATURALGAS":5,"COPPER":50,"ZINC":50,
                     }.get(instrument, 100)
         offset = 0.0
@@ -972,7 +983,8 @@ def get_atm_strike(instrument: str, chain: list = None) -> float:
     """
     info     = INSTRUMENTS.get(instrument, {})
     interval = {
-        "NIFTY":50, "BANKNIFTY":100,         "SENSEX":100,
+        "NIFTY":50, "BANKNIFTY":100, "FINNIFTY":50, "MIDCPNIFTY":25,
+        "SENSEX":100, "BANKEX":100,
         "GOLD":100, "SILVER":100, "CRUDEOIL":100, "NATURALGAS":5,
         "COPPER":50, "ZINC":50, "NICKEL":50, "GOLDM":100,
         "SILVERM":100, "CRUDEOILM":100, "NATGASMINI":5,
