@@ -891,8 +891,7 @@ def api_start_algo():
         if enabled:
             engine_ref.load_strategies(enabled)
         else:
-            _log.info("No enabled strategies — loading all instrument chains for dynamic strategy creation.")
-            engine_ref.load_strategies([])  # loads all chains from _ALL_INSTRS even with no strategies
+            _log.info("No enabled strategies — ready for dynamic strategy creation.")
 
         # AngelOne — tokens managed internally by adapter
         save_config()

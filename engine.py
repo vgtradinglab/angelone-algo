@@ -4245,11 +4245,8 @@ class Engine:
         # Replace strategies list with only active (non-holiday) ones
         strategies = active_strategies
 
-        # Fetch chains for ALL instruments at startup — not just active strategies
-        _ALL_INSTRS = {"NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY",
-                       "SENSEX",
-                       "CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
-        instruments = _ALL_INSTRS | set(s.get("idx","NIFTY") for s in strategies)
+        # Fetch chains for all unique instruments in active strategies
+        instruments = set(s.get("idx","NIFTY") for s in strategies)
         all_tokens  = []
 
         # Collect all expiry types needed per instrument.
