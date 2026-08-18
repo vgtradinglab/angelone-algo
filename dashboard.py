@@ -891,7 +891,19 @@ def api_start_algo():
         if enabled:
             engine_ref.load_strategies(enabled)
         else:
-            _log.info("No enabled strategies — ready for dynamic strategy creation.")
+            _log.info("No enabled strategies — starting WebSocket for dynamic strategy creation.")
+            # Start WebSocket with just index tokens so connection is live
+            # when user creates a strategy mid-session
+            from engine import price_store, INDEX_TOKEN_MAP
+            _idx_toks = []
+            for _instr, _itok in INDEX_TOKEN_MAP.items():
+                if _itok.get("index_token"):
+                    _idx_toks.append({"instrument_token": _itok["index_token"],
+                                      "exchange_segment": _itok.get("index_exch","NSE"),
+                                      "instrument": _instr})
+            if _idx_toks:
+                engine_ref.broker.subscribe_feed(_idx_toks, lambda tok,ltp: price_store.update(tok,ltp))
+                _log.info(f"[WS] Started WebSocket with {len(_idx_toks)} index tokens — ready for dynamic strategies")
 
         # AngelOne — tokens managed internally by adapter
         save_config()
@@ -1139,7 +1151,7 @@ def api_save_strategy():
                 # Signal runner that config changed so it resets stale state
                 # (rangeBreak high/low/window-done counters etc.) on next tick
                 runner_existing._config_changed = True
-        elif not (idx is not None) and s.get("enabled", False):
+        elif s["id"] not in engine_ref.runners and s.get("enabled", False):
             # NEW strategy added while algo is running -- start it immediately
             # Only if enabled=True (user toggled ON or created with enabled flag)
             try:
@@ -1175,7 +1187,7 @@ def api_save_strategy():
                                         engine_ref.notifier, engine_ref.dry_run)
                 engine_ref.runners[s["id"]] = runner
                 # ── Subscribe WS BEFORE starting thread (fix race condition) ──
-                # pSymbol is the correct Kotak token field (not pToken)
+                # instrument_token is the AngelOne field; pSymbol kept as fallback for compatibility
                 try:
                     from engine import price_store
                     import time as _time
@@ -1345,11 +1357,11 @@ def api_toggle_strategy(sid):
                             # Subscribe tokens first
                             opt_toks=[]; idx_toks=[]
                             for item in chain:
-                                pt = str(item.get("pSymbol","") or "")
-                                ex = str(item.get("pExchSeg","nse_fo") or "nse_fo")
+                                pt = str(item.get("instrument_token","") or item.get("pSymbol","") or "")
+                                ex = str(item.get("exchange_segment","") or item.get("exchange","") or item.get("pExchSeg","NFO") or "NFO")
                                 if not pt: continue
-                                if ex in ("nse_cm","bse_cm"): idx_toks.append({"instrument_token":pt,"exchange_segment":ex})
-                                else: opt_toks.append({"instrument_token":pt,"exchange_segment":ex})
+                                if ex.lower() in ("nse","bse","nse_cm","bse_cm"): idx_toks.append({"instrument_token":pt,"exchange_segment":ex,"instrument":instr})
+                                else: opt_toks.append({"instrument_token":pt,"exchange_segment":ex,"instrument":instr})
                             if opt_toks: engine_ref.broker.subscribe_feed(opt_toks, lambda tok,ltp: price_store.update(tok,ltp))
                             if idx_toks and hasattr(engine_ref.broker,"subscribe_index_feed"): engine_ref.broker.subscribe_index_feed(idx_toks)
                             _t.sleep(2)  # wait for prices
@@ -1431,7 +1443,7 @@ def api_restart_strategy(sid):
                     for item in ch:
                         ptoken = str(item.get("pToken","") or item.get("token","") or "")
                         if ptoken: all_toks.append({"instrument_token": ptoken,
-                                                    "exchange_segment": item.get("pExchSeg","nse_fo")})
+                                                    "exchange_segment": item.get("exchange_segment","") or item.get("exchange","NFO")})
                 if all_toks:
                     engine_ref.broker.subscribe_feed(
                         all_toks, lambda tok, ltp: price_store.update(tok, ltp))

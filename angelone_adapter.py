@@ -75,30 +75,58 @@ class AngelOneAdapter:
                     _log.warning(f"[AngelOne] Token refresh error: {e}")
         threading.Thread(target=_loop,name="TokenRefresh",daemon=True).start()
 
-    def _download_instruments(self):
+    def _process_instruments(self, data):
         SKIP_SEGMENTS = {"NCO","CDS","NCDEX"}
+        count = 0
+        for item in data:
+            sym=item.get("symbol","").strip()
+            token=item.get("token","").strip()
+            exch=item.get("exch_seg","").strip()
+            if exch in SKIP_SEGMENTS: continue
+            if sym and token:
+                self._instruments[f"{exch}:{sym}"]={
+                    "token":token,"symbol":sym,"exchange":exch,
+                    "name":item.get("name","").strip(),
+                    "lotsize":item.get("lotsize","1"),
+                    "expiry":item.get("expiry",""),
+                    "strike":item.get("strike",""),
+                    "opttype":item.get("instrumenttype",""),
+                    "tick_size":item.get("tick_size","0.05"),
+                }
+                count+=1
+        return count
+
+    def _download_instruments(self):
+        import os, json as _json
+        from datetime import date
+        CACHE_FILE = "/tmp/angelone_instruments_cache.json"
+        CACHE_DATE_FILE = "/tmp/angelone_instruments_cache_date.txt"
+        today = date.today().isoformat()
+        # Use cache if downloaded today
+        if os.path.exists(CACHE_FILE) and os.path.exists(CACHE_DATE_FILE):
+            try:
+                cached_date = open(CACHE_DATE_FILE).read().strip()
+                if cached_date == today:
+                    _log.info("[AngelOne] Loading instruments from local cache...")
+                    data = _json.load(open(CACHE_FILE))
+                    count = self._process_instruments(data)
+                    _log.info(f"[AngelOne] Instruments loaded from cache: {count} symbols.")
+                    return
+            except Exception as _ce:
+                _log.warning(f"[AngelOne] Cache load failed: {_ce} — downloading fresh.")
         try:
             _log.info("[AngelOne] Downloading instrument master...")
-            r=requests.get(SCRIP_MASTER_URL,timeout=30)
+            r=requests.get(SCRIP_MASTER_URL,timeout=60)
             data=r.json()
-            count=0
-            for item in data:
-                sym=item.get("symbol","").strip()
-                token=item.get("token","").strip()
-                exch=item.get("exch_seg","").strip()
-                if exch in SKIP_SEGMENTS: continue
-                if sym and token:
-                    self._instruments[f"{exch}:{sym}"]={
-                        "token":token,"symbol":sym,"exchange":exch,
-                        "name":item.get("name","").strip(),
-                        "lotsize":item.get("lotsize","1"),
-                        "expiry":item.get("expiry",""),
-                        "strike":item.get("strike",""),
-                        "opttype":item.get("instrumenttype",""),
-                        "tick_size":item.get("tick_size","0.05"),
-                    }
-                    count+=1
+            count = self._process_instruments(data)
             _log.info(f"[AngelOne] Instruments loaded: {count} symbols.")
+            # Save to local cache
+            try:
+                _json.dump(data, open(CACHE_FILE,'w'))
+                open(CACHE_DATE_FILE,'w').write(today)
+                _log.info(f"[AngelOne] Instruments cached locally for {today}")
+            except Exception as _se:
+                _log.warning(f"[AngelOne] Cache save failed: {_se}")
         except Exception as e:
             _log.error(f"[AngelOne] Instrument download failed: {e}")
 
