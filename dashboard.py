@@ -1180,6 +1180,14 @@ def api_save_strategy():
                             _c = engine_ref.broker.get_option_chain(s.get("idx","NIFTY"), exp_str)
                             _combined_chain.extend(_c)
                     chain = _combined_chain
+                    # For MCX: also fetch futures for ATM calculation
+                    if info.get("is_mcx") and chain:
+                        _all_exps2 = engine_ref.broker.get_available_expiries(s.get("idx","NIFTY"), opt_only=False)
+                        for _fe2 in _all_exps2:
+                            _fut2 = engine_ref.broker.get_fut_chain(s.get("idx","NIFTY"), _fe2)
+                            if _fut2:
+                                chain = chain + _fut2
+                                break
                     engine_ref._option_chains[s.get("idx","NIFTY")] = chain
                 om = OrderManager(engine_ref.broker, engine_ref.dry_run,
                                   config_ref, notifier=engine_ref.notifier)
@@ -1353,6 +1361,15 @@ def api_toggle_strategy(sid):
                                 exp  = nearest_expiry_from_broker(engine_ref.broker, instr, et)
                                 if not exp: exp = expiry_fmt(nearest_expiry(instr, et))
                                 chain = engine_ref.broker.get_option_chain(instr, exp)
+                                # For MCX: also fetch futures for ATM calculation
+                                if info.get("is_mcx"):
+                                    from engine import nearest_expiry_from_broker as _nefb
+                                    _all_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
+                                    for _fe in _all_exps:
+                                        _fut = engine_ref.broker.get_fut_chain(instr, _fe)
+                                        if _fut:
+                                            chain = chain + _fut
+                                            break
                                 engine_ref._option_chains[instr] = chain
                             # Subscribe tokens first
                             opt_toks=[]; idx_toks=[]
