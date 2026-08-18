@@ -1843,10 +1843,7 @@ def _clean_index_name(raw: str) -> str:
     _map = {
         "NIFTY":     "Nifty",
         "BANKNIFTY": "BankNifty",
-        "FINNIFTY":  "FinNifty",
-        "MIDCPNIFTY":"MidcapNifty",
         "SENSEX":    "Sensex",
-        "BANKEX":    "Bankex",
         "GOLD":      "Gold",
         "SILVER":    "Silver",
         "CRUDEOIL":  "CrudeOil",
