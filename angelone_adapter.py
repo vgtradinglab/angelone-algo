@@ -298,19 +298,6 @@ class AngelOneAdapter:
         _log.info("[AngelOne] WebSocket connected.")
         self._ws_connected.set()
 
-    def _connect_websocket(self):
-        self._connect_all_websockets()
-
-    def _on_open_multi(self,wsapp,token_list,name):
-        _log.info(f"[AngelOne] {name} connected.")
-        self._last_tick_ts=time.time()
-        self._feed_healthy=True
-        self._ws_connected.set()
-        try:
-            self._subscribe_tokens(self._sub_tokens)
-        except Exception as e:
-            _log.error(f"[AngelOne] Subscribe error on open: {e}")
-
     def _on_data(self,wsapp,message):
         """Called by SDK for each tick. Queue for async processing."""
         try:
