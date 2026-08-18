@@ -1187,9 +1187,12 @@ def api_save_strategy():
                     chain = _combined_chain
                     # For MCX: also fetch futures for ATM calculation
                     if info.get("is_mcx") and chain:
-                        _all_exps2 = engine_ref.broker.get_available_expiries(s.get("idx","NIFTY"), opt_only=False)
-                        for _fe2 in _all_exps2:
-                            _fut2 = engine_ref.broker.get_fut_chain(s.get("idx","NIFTY"), _fe2)
+                        _instr2 = s.get("idx","NIFTY")
+                        _fut_exps2 = engine_ref.broker.get_available_expiries(_instr2, opt_only=False)
+                        _opt_exps2 = engine_ref.broker.get_available_expiries(_instr2, opt_only=True)
+                        _fut_only2 = [e for e in _fut_exps2 if e not in _opt_exps2] or _fut_exps2
+                        for _fe2 in _fut_only2:
+                            _fut2 = engine_ref.broker.get_fut_chain(_instr2, _fe2)
                             if _fut2:
                                 chain = chain + _fut2
                                 break
@@ -1371,8 +1374,12 @@ def api_toggle_strategy(sid):
                                 chain = engine_ref.broker.get_option_chain(instr, exp)
                                 # For MCX: also fetch futures for ATM calculation
                                 if info.get("is_mcx"):
-                                    _all_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
-                                    for _fe in _all_exps:
+                                    # Get futures expiries specifically (FUTCOM only)
+                                    _fut_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
+                                    _opt_exps = engine_ref.broker.get_available_expiries(instr, opt_only=True)
+                                    # Try expiries not in options (futures-only expiries)
+                                    _fut_only = [e for e in _fut_exps if e not in _opt_exps] or _fut_exps
+                                    for _fe in _fut_only:
                                         _fut = engine_ref.broker.get_fut_chain(instr, _fe)
                                         if _fut:
                                             chain = chain + _fut

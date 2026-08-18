@@ -26,6 +26,7 @@ class AngelOneAdapter:
         self._last_tick_ts=0.0
         self._feed_healthy=False
         self._watchdog_started=self._watchdog_stop=False
+        self._ws=None
         self._ws_connected=threading.Event()
         self._tick_queue=queue.Queue(maxsize=10000)
         self._worker_started=self._worker_stop=False
