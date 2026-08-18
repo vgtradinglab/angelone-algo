@@ -298,15 +298,17 @@ class AngelOneAdapter:
 
     def _connect_websocket(self):
         try:
-            self._ws=SmartWebSocketV2(self._jwt_token,self._api_key,self._client_code,self._feed_token,max_retry_attempt=0)
-            self._ws.on_open=self._on_open
-            self._ws.on_data=self._on_data
-            self._ws.on_error=self._on_error
-            self._ws.on_close=self._on_close
-            threading.Thread(target=self._ws.connect,daemon=True,name="WSConnect").start()
-            _log.info("[AngelOne] WebSocket connecting...")
+            ws=SmartWebSocketV2(self._jwt_token,self._api_key,self._client_code,self._feed_token,max_retry_attempt=0)
+            ws.on_open =lambda wsapp,_tl=token_list,_n=name: self._on_open_multi(wsapp,_tl,_n)
+            ws.on_data =self._on_data
+            ws.on_error=self._on_error
+            ws.on_close=self._on_close
+            threading.Thread(target=ws.connect,daemon=True,name=f"WS-{name}").start()
+            _log.info(f"[AngelOne] {name} connecting ({len(token_list)} tokens)...")
+            return ws
         except Exception as e:
-            _log.error(f"[AngelOne] WebSocket connect error: {e}")
+            _log.error(f"[AngelOne] {name} connect error: {e}")
+            return None
 
     def _on_open_multi(self,wsapp,token_list,name):
         _log.info(f"[AngelOne] {name} connected.")
