@@ -297,6 +297,14 @@ class AngelOneAdapter:
         """Called by SDK when WebSocket connects. Subscribe all accumulated tokens."""
         _log.info("[AngelOne] WebSocket connected.")
         self._ws_connected.set()
+        self._last_tick_ts=time.time()
+        self._feed_healthy=True
+        # Resubscribe all tokens on every connect/reconnect
+        if self._sub_tokens:
+            try:
+                self._subscribe_tokens(self._sub_tokens)
+            except Exception as e:
+                _log.error(f"[AngelOne] Subscribe error on open: {e}")
 
     def _on_data(self,wsapp,message):
         """Called by SDK for each tick. Queue for async processing."""
