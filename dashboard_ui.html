@@ -3039,6 +3039,7 @@ function resetForm(){
   document.getElementById('protectBoth').style.display = 'none';
   currentSegment = 'Options';
   legs = []; tslData = {};
+  _indExtra = []; if(typeof _renderIndExtra==="function") _renderIndExtra();
   renderLegs();
 }
 
