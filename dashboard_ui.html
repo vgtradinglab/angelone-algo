@@ -3199,6 +3199,29 @@ function loadStrategyForEdit(id){
 
   // Show/hide BTST row after everything is loaded
   setTimeout(toggleBtstRow, 150);
+  // ── Load indicator config from saved strategy ────────────────
+  var _sic = s.indicator_config;
+  if(_sic){
+    var _cfg0 = Array.isArray(_sic) ? _sic[0] : _sic;
+    var _et = document.getElementById('indType');
+    if(_et && _cfg0){ _et.value = _cfg0.type||'EMA'; onIndTypeChange(); }
+    var _etf = document.getElementById('indTimeframe');
+    if(_etf && _cfg0) _etf.value = _cfg0.timeframe||'5 Min';
+    var _el = document.getElementById('indLength');
+    if(_el && _cfg0) _el.value = _cfg0.length||9;
+    var _ef = document.getElementById('indFactor');
+    if(_ef && _cfg0) _ef.value = _cfg0.factor||3;
+    var _es = document.getElementById('indSignal');
+    if(_es && _cfg0) _es.value = _cfg0.signal||'ABOVE';
+    var _eu = document.getElementById('indUpper');
+    if(_eu && _cfg0) _eu.value = _cfg0.upper||70;
+    var _elo = document.getElementById('indLower');
+    if(_elo && _cfg0) _elo.value = _cfg0.lower||30;
+    _indExtra = Array.isArray(_sic) ? _sic.slice(1).map(function(x){return JSON.parse(JSON.stringify(x));}) : [];
+    _renderIndExtra();
+  } else {
+    _indExtra = []; _renderIndExtra();
+  }
   renderLegs();
 }
 
