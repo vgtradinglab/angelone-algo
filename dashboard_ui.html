@@ -3202,6 +3202,7 @@ function loadStrategyForEdit(id){
   // ── Load indicator config from saved strategy ────────────────
   var _sic = s.indicator_config;
   if(_sic){
+    switchStratType('indicator');
     var _cfg0 = Array.isArray(_sic) ? _sic[0] : _sic;
     var _et = document.getElementById('indType');
     if(_et && _cfg0){ _et.value = _cfg0.type||'EMA'; onIndTypeChange(); }
@@ -3220,6 +3221,7 @@ function loadStrategyForEdit(id){
     _indExtra = Array.isArray(_sic) ? _sic.slice(1).map(function(x){return JSON.parse(JSON.stringify(x));}) : [];
     _renderIndExtra();
   } else {
+    switchStratType('time');
     _indExtra = []; _renderIndExtra();
   }
   renderLegs();
