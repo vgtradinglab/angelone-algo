@@ -1172,13 +1172,18 @@ def api_save_strategy():
                             _et_m = "monthly"
                         _leg_expiries.add(_et_m)
                     _combined_chain = []
-                    for _et_m in _leg_expiries:
-                        exp_str = nearest_expiry_from_broker(engine_ref.broker, s.get("idx","NIFTY"), _et_m)
-                        if not exp_str:
-                            exp_str = expiry_fmt(nearest_expiry(s.get("idx","NIFTY"), _et_m))
-                        if exp_str:
-                            _c = engine_ref.broker.get_option_chain(s.get("idx","NIFTY"), exp_str)
-                            _combined_chain.extend(_c)
+                    _instr_name = s.get("idx","NIFTY")
+                    _opt_only_s = info.get("is_mcx", False)
+                    _exps_s = engine_ref.broker.get_available_expiries(_instr_name, opt_only=_opt_only_s)
+                    if _exps_s:
+                        _c = engine_ref.broker.get_option_chain(_instr_name, _exps_s[0])
+                        _combined_chain.extend(_c)
+                    else:
+                        for _et_m in _leg_expiries:
+                            exp_str = expiry_fmt(nearest_expiry(_instr_name, _et_m))
+                            if exp_str:
+                                _c = engine_ref.broker.get_option_chain(_instr_name, exp_str)
+                                _combined_chain.extend(_c)
                     chain = _combined_chain
                     # For MCX: also fetch futures for ATM calculation
                     if info.get("is_mcx") and chain:
@@ -1357,13 +1362,15 @@ def api_toggle_strategy(sid):
                             if not chain:
                                 from engine import nearest_expiry_from_broker, nearest_expiry, expiry_fmt
                                 info = INSTRUMENTS.get(instr,{})
-                                et   = "monthly" if info.get("is_mcx") else "weekly"
-                                exp  = nearest_expiry_from_broker(engine_ref.broker, instr, et)
-                                if not exp: exp = expiry_fmt(nearest_expiry(instr, et))
+                                # Get expiry from local instrument master — instant, no API call
+                                _opt_only = info.get("is_mcx", False)
+                                _exps = engine_ref.broker.get_available_expiries(instr, opt_only=_opt_only)
+                                exp = _exps[0] if _exps else ""
+                                if not exp:
+                                    exp = expiry_fmt(nearest_expiry(instr, "monthly" if info.get("is_mcx") else "weekly"))
                                 chain = engine_ref.broker.get_option_chain(instr, exp)
                                 # For MCX: also fetch futures for ATM calculation
                                 if info.get("is_mcx"):
-                                    from engine import nearest_expiry_from_broker as _nefb
                                     _all_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
                                     for _fe in _all_exps:
                                         _fut = engine_ref.broker.get_fut_chain(instr, _fe)
