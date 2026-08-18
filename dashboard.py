@@ -1182,8 +1182,8 @@ def api_save_strategy():
                     opt_toks = []; idx_toks = []
                     for ch in engine_ref._option_chains.values():
                         for item in ch:
-                            ptoken = str(item.get("pSymbol","") or "")  # correct field
-                            exch   = str(item.get("pExchSeg","nse_fo") or "nse_fo")
+                            ptoken = str(item.get("instrument_token","") or item.get("pSymbol","") or "")
+                            exch   = str(item.get("exchange_segment","") or item.get("exchange","") or item.get("pExchSeg","NFO") or "NFO")
                             if not ptoken: continue
                             tok_entry = {"instrument_token": ptoken, "exchange_segment": exch}
                             if exch in ("nse_cm","bse_cm"):
