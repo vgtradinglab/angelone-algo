@@ -33,10 +33,6 @@ class AngelOneAdapter:
         self._ws=None
         self._ws_connected=threading.Event()
         self._tick_queue=queue.Queue(maxsize=10000)
-        # Candle builder — builds 1-min OHLC from WebSocket ticks (zero REST API calls)
-        self._candle_data={}       # {token: [candle,...]} historical closed candles
-        self._candle_current={}    # {token: {o,h,l,c,ts}} current open candle
-        self._candle_lock=threading.Lock()
         self._worker_started=self._worker_stop=False
         self._lock=threading.Lock()
         # 3 WS connections: WS1=NIFTY+SENSEX, WS2=BANKNIFTY+FINNIFTY, WS3=MIDCPNIFTY+MCX
@@ -340,9 +336,7 @@ class AngelOneAdapter:
                 if self._on_tick_cb and isinstance(msg,dict):
                     token=str(msg.get("token",""))
                     ltp=float(msg.get("last_traded_price",0))/100
-                    if token and ltp>0:
-                        self._on_tick_cb(token,ltp)
-                        self._update_candle(token,ltp)
+                    if token and ltp>0: self._on_tick_cb(token,ltp)
             except queue.Empty: continue
             except Exception as e: _log.error(f"[AngelOne] Tick worker error: {e}")
 
@@ -367,34 +361,6 @@ class AngelOneAdapter:
                 self._ws3=self._make_ws("WS3",self._ws3_tokens)
         except Exception as e:
             _log.error(f"[AngelOne] Reconnect WS{num} error: {e}")
-
-    def _update_candle(self,token,ltp):
-        """Build 1-min OHLC candles from WebSocket ticks."""
-        try:
-            now=time.time()
-            # Current minute bucket (floor to 60 seconds)
-            minute_ts=int(now//60)*60
-            with self._candle_lock:
-                cur=self._candle_current.get(token)
-                if cur is None or cur["ts"]!=minute_ts:
-                    # Close previous candle and save to history
-                    if cur is not None:
-                        closed=[cur["ts"],cur["o"],cur["h"],cur["l"],cur["c"],0]
-                        if token not in self._candle_data:
-                            self._candle_data[token]=[]
-                        self._candle_data[token].append(closed)
-                        # Keep max 500 candles per token (~8 hours)
-                        if len(self._candle_data[token])>500:
-                            self._candle_data[token]=self._candle_data[token][-500:]
-                    # Start new candle
-                    self._candle_current[token]={"ts":minute_ts,"o":ltp,"h":ltp,"l":ltp,"c":ltp}
-                else:
-                    # Update current candle
-                    if ltp>cur["h"]: cur["h"]=ltp
-                    if ltp<cur["l"]: cur["l"]=ltp
-                    cur["c"]=ltp
-        except Exception as e:
-            _log.error(f"[AngelOne] Candle builder error: {e}")
 
     def _watchdog(self):
         """Monitor feed health. Reconnect if stale for 120 seconds."""
@@ -532,16 +498,6 @@ class AngelOneAdapter:
 
     def get_candles(self,exchange,symbol,interval,from_date,to_date):
         try:
-            # Only use local cache for ONE_MINUTE interval
-            if interval=="ONE_MINUTE":
-                ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
-                token=self.get_symbol_token(ao_exch,symbol)
-                if token and token in self._candle_data and len(self._candle_data[token])>=2:
-                    with self._candle_lock:
-                        candles=list(self._candle_data[token])
-                    _log.info(f"[AngelOne] Candles from local cache: {symbol} {len(candles)} bars")
-                    return candles
-            # Fallback to REST API (other intervals or cache empty)
             with _CANDLE_LOCK:
                 _elapsed = time.time() - _CANDLE_LAST_TS[0]
                 if _elapsed < 10.0:

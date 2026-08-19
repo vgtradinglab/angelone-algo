@@ -1732,7 +1732,6 @@ body{
           <div class="fg">
             <label class="flbl">Timeframe</label>
             <select class="fsel" id="indTimeframe">
-              <option value="1 Min">1 Min</option>
               <option value="5 Min" selected>5 Min</option>
               <option value="15 Min">15 Min</option>
               <option value="30 Min">30 Min</option>
@@ -4427,7 +4426,7 @@ function _renderIndExtra(){
     html+='</select></div>';
     // Timeframe
     html+='<div class="fg"><label class="flbl">Timeframe</label><select class="fsel" onchange="_indExtra['+i+'].timeframe=this.value">';
-    ['1 Min','5 Min','15 Min','30 Min','1 Hour'].forEach(function(t){ html+='<option value="'+t+'"'+(p.timeframe===t?' selected':'')+'>'+t+'</option>'; });
+    ['5 Min','15 Min','30 Min','1 Hour'].forEach(function(t){ html+='<option value="'+t+'"'+(p.timeframe===t?' selected':'')+'>'+t+'</option>'; });
     html+='</select></div>';
     // Length
     if(p.type!=='CPR'&&p.type!=='VWAP'){
