@@ -503,14 +503,14 @@ class AngelOneAdapter:
                 if _elapsed < 20.0:
                     time.sleep(20.0 - _elapsed)
                 _CANDLE_LAST_TS[0] = time.time()
-            ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
-            token=self.get_symbol_token(ao_exch,symbol)
-            if not token:
-                _log.error(f"[AngelOne] get_candles: token not found for {symbol}")
-                return []
-            r=self._smart_api.getCandleData({
-                "exchange":ao_exch,"symboltoken":token,
-                "interval":interval,"fromdate":from_date,"todate":to_date})
+                ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
+                token=self.get_symbol_token(ao_exch,symbol)
+                if not token:
+                    _log.error(f"[AngelOne] get_candles: token not found for {symbol}")
+                    return []
+                r=self._smart_api.getCandleData({
+                    "exchange":ao_exch,"symboltoken":token,
+                    "interval":interval,"fromdate":from_date,"todate":to_date})
             if r and r.get("status")!=False: return r.get("data") or []
             _log.error(f"[AngelOne] get_candles failed: {r.get('message','') if r else ''}")
             return []
