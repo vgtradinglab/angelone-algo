@@ -1209,13 +1209,14 @@ def api_save_strategy():
                     from engine import price_store
                     import time as _time
                     opt_toks = []; idx_toks = []
-                    for ch in engine_ref._option_chains.values():
-                        for item in ch:
+                    # Only subscribe tokens for THIS strategy's instrument — not all chains
+                    _new_chain = engine_ref._option_chains.get(s.get("idx","NIFTY"), [])
+                    for item in _new_chain:
                             ptoken = str(item.get("instrument_token","") or item.get("pSymbol","") or "")
                             exch   = str(item.get("exchange_segment","") or item.get("exchange","") or item.get("pExchSeg","NFO") or "NFO")
                             if not ptoken: continue
-                            tok_entry = {"instrument_token": ptoken, "exchange_segment": exch}
-                            if exch in ("nse_cm","bse_cm"):
+                            tok_entry = {"instrument_token": ptoken, "exchange_segment": exch, "instrument": s.get("idx","NIFTY")}
+                            if exch.upper() in ("NSE","BSE","NSE_CM","BSE_CM"):
                                 idx_toks.append(tok_entry)
                             else:
                                 opt_toks.append(tok_entry)
