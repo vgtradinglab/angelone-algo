@@ -24,7 +24,7 @@ def get_signal(broker, exchange, symbol, timeframe, length=9):
     SELL — price closes below EMA
     """
     try:
-        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+10)
+        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+100)
         if len(candles) < length + 2:
             return None, None, None
         closes      = [c[4] for c in candles]
