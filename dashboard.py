@@ -1429,8 +1429,15 @@ def api_toggle_strategy(sid):
                                 if not pt: continue
                                 if ex.lower() in ("nse","bse","nse_cm","bse_cm"): idx_toks.append({"instrument_token":pt,"exchange_segment":ex,"instrument":instr})
                                 else: opt_toks.append({"instrument_token":pt,"exchange_segment":ex,"instrument":instr})
+                            # Add index token for this instrument
+                            from engine import INDEX_TOKEN_MAP
+                            _idx_info = INDEX_TOKEN_MAP.get(instr,{})
+                            if _idx_info.get("index_token"):
+                                _idx_entry = {"instrument_token":_idx_info["index_token"],
+                                              "exchange_segment":_idx_info.get("index_exch","NSE"),
+                                              "instrument":instr}
+                                opt_toks.append(_idx_entry)
                             if opt_toks: engine_ref.broker.subscribe_feed(opt_toks, lambda tok,ltp: price_store.update(tok,ltp))
-                            if idx_toks and hasattr(engine_ref.broker,"subscribe_index_feed"): engine_ref.broker.subscribe_index_feed(idx_toks)
                             _t.sleep(2)  # wait for prices
                             om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
                             import copy as _copy
