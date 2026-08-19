@@ -1387,8 +1387,10 @@ def api_toggle_strategy(sid):
                                             break
                                 # For NSE/BSE Futures strategies: fetch futures separately
                                 if not info.get("is_mcx") and strat.get("segment","Options") == "Futures":
-                                    _nse_fut_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
-                                    for _nfe in _nse_fut_exps:
+                                    _nse_all_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
+                                    _nse_opt_exps = engine_ref.broker.get_available_expiries(instr, opt_only=True)
+                                    _nse_fut_only = [e for e in _nse_all_exps if e not in _nse_opt_exps] or _nse_all_exps
+                                    for _nfe in _nse_fut_only:
                                         _nfut = engine_ref.broker.get_fut_chain(instr, _nfe)
                                         if _nfut:
                                             chain = chain + _nfut
