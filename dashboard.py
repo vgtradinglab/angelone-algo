@@ -1385,6 +1385,14 @@ def api_toggle_strategy(sid):
                                         if _fut:
                                             chain = chain + _fut
                                             break
+                                # For NSE/BSE Futures strategies: fetch futures separately
+                                if not info.get("is_mcx") and strat.get("segment","Options") == "Futures":
+                                    _nse_fut_exps = engine_ref.broker.get_available_expiries(instr, opt_only=False)
+                                    for _nfe in _nse_fut_exps:
+                                        _nfut = engine_ref.broker.get_fut_chain(instr, _nfe)
+                                        if _nfut:
+                                            chain = chain + _nfut
+                                            break
                                 engine_ref._option_chains[instr] = chain
                             # Apply MCX ±20 strike filter before subscribing
                             from engine import get_atm_strike, price_store as _ps
