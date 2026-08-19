@@ -3963,9 +3963,15 @@ function onIdx(){
     }
   } else {
     // NSE/BSE — unlock segment toggle
+    // SENSEX futures not supported — lock to Options only
+    var _sensexFutLock = (idx === 'SENSEX');
     document.querySelectorAll('.tgb').forEach(b=>{
-      if((b.getAttribute('onclick')||'').includes('togSeg')) b.disabled=false;
+      if((b.getAttribute('onclick')||'').includes('togSeg')){
+        b.disabled = _sensexFutLock;
+        if(_sensexFutLock) b.classList.toggle('on', b.textContent.trim()==='Options');
+      }
     });
+    if(_sensexFutLock) currentSegment = 'Options';
     // Only reset FUT→CE when creating new, not editing
     if(!isEditing){
       legs.forEach(l=>{ if(l.type==='FUT') l.type='CE'; });
