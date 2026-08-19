@@ -12,6 +12,10 @@ EXCHANGE_MAP  = {"nse_cm":"NSE","nse_fo":"NFO","bse_cm":"BSE","bse_fo":"BFO","mc
 PRODUCT_MAP   = {"MIS":"INTRADAY","NRML":"CARRYFORWARD","CNC":"DELIVERY"}
 OTYPE_MAP     = {"L":"LIMIT","M":"MARKET","SL":"STOPLOSS_LIMIT","SL-M":"STOPLOSS_MARKET"}
 
+import threading as _threading
+_CANDLE_LOCK = _threading.Lock()
+_CANDLE_LAST_TS = [0.0]  # shared across all instances
+
 class AngelOneAdapter:
     name = "Angel One"
 
@@ -494,7 +498,11 @@ class AngelOneAdapter:
 
     def get_candles(self,exchange,symbol,interval,from_date,to_date):
         try:
-            time.sleep(10.0)  # AngelOne rate limit: max 3 requests/sec
+            with _CANDLE_LOCK:
+                _elapsed = time.time() - _CANDLE_LAST_TS[0]
+                if _elapsed < 10.0:
+                    time.sleep(10.0 - _elapsed)
+                _CANDLE_LAST_TS[0] = time.time()
             ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
             token=self.get_symbol_token(ao_exch,symbol)
             if not token:
