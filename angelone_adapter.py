@@ -500,8 +500,8 @@ class AngelOneAdapter:
         try:
             with _CANDLE_LOCK:
                 _elapsed = time.time() - _CANDLE_LAST_TS[0]
-                if _elapsed < 10.0:
-                    time.sleep(10.0 - _elapsed)
+                if _elapsed < 20.0:
+                    time.sleep(20.0 - _elapsed)
                 _CANDLE_LAST_TS[0] = time.time()
             ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
             token=self.get_symbol_token(ao_exch,symbol)
