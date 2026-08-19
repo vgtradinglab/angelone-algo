@@ -494,7 +494,7 @@ class AngelOneAdapter:
 
     def get_candles(self,exchange,symbol,interval,from_date,to_date):
         try:
-            time.sleep(1.0)  # AngelOne rate limit: max 3 requests/sec
+            time.sleep(5.0)  # AngelOne rate limit: max 3 requests/sec
             ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
             token=self.get_symbol_token(ao_exch,symbol)
             if not token:
