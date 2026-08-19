@@ -4318,12 +4318,11 @@ class Engine:
                 # - Options only → fetch options chain only
                 if has_fut_leg or info.get("is_mcx"):
                     opt_chain = self.broker.get_option_chain(instr, exp_str)
-                    # For MCX: futures use different expiry than options
+                    # For MCX and NSE/BSE: futures may use different expiry than options
                     _fut_exp = exp_str
-                    if info.get("is_mcx"):
-                        _all_fut_exps = [e for e in (self.broker.get_available_expiries(instr) or [])
-                                         if self.broker.get_fut_chain(instr, e)]
-                        if _all_fut_exps: _fut_exp = _all_fut_exps[0]
+                    _all_fut_exps = [e for e in (self.broker.get_available_expiries(instr) or [])
+                                     if self.broker.get_fut_chain(instr, e)]
+                    if _all_fut_exps: _fut_exp = _all_fut_exps[0]
                     fut_chain = self.broker.get_fut_chain(instr, _fut_exp)
                     # Combine — deduplicate by instrument_token
                     seen_toks = set()
