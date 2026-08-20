@@ -1900,6 +1900,9 @@ class StrategyRunner:
 
             except Exception as e:
                 self.log.error(f"{self.name}: Indicator runner error: {e}")
+                try:
+                    self.notify.telegram(f"⚠️ [ERROR] | {self.name}\nIndicator runner error: {e}")
+                except: pass
 
             # Wait for next candle close check — every 30 seconds
             _time.sleep(30)
