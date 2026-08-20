@@ -1791,7 +1791,7 @@ class StrategyRunner:
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
 
-        while True:
+        while not self.stopped:
             now     = _dt.now(IST)
             weekday = now.weekday()
 
@@ -4651,6 +4651,10 @@ class Engine:
     def stop_strategy(self, sid: int):
         if sid in self.runners:
             self.runners[sid].force_exit()
+            # Remove runner so dashboard shows clean state
+            try:
+                del self.runners[sid]
+            except: pass
 
     def exit_all_positions(self):
         """Exit all open positions without stopping the engine."""
