@@ -247,10 +247,11 @@ class AngelOneAdapter:
             _log.info("[AngelOne] No new tokens to subscribe")
             return
         self._sub_tokens=self._sub_tokens+new_tokens
-        # Register symbol→token mapping for candle builder
+        # Register token→instrument mapping for candle builder
         for t in new_tokens:
             tok = str(t.get("instrument_token",""))
-            sym = str(t.get("tradingsymbol","") or t.get("instrument",""))
+            # Use instrument name (NIFTY, BANKNIFTY etc.) for index tokens
+            sym = str(t.get("instrument","") or t.get("tradingsymbol",""))
             if tok and sym:
                 self.register_symbol_token(sym, tok)
         if self._ws is None:
@@ -517,8 +518,19 @@ class AngelOneAdapter:
             INTERVAL_MINS = {"FIVE_MINUTE":5,"FIFTEEN_MINUTE":15,"THIRTY_MINUTE":30,"ONE_HOUR":60}
             target_mins = INTERVAL_MINS.get(interval, 5)
             base_mins   = 5  # we store 5 Min candles
+            # Normalize symbol — strip expiry suffix for MCX futures
+            # e.g. "CRUDEOIL19AUG26FUT" → "CRUDEOIL"
+            _sym = symbol
+            for _sfx in ["FUT","CE","PE"]:
+                if _sym.endswith(_sfx):
+                    # Extract base name by removing date+suffix
+                    import re as _re
+                    _base = _re.sub(r'\d{2}[A-Z]{3}\d{2}(FUT|CE|PE)$','',_sym)
+                    if _base and _base in self._candle_cache:
+                        _sym = _base
+                        break
             with self._candle_lock:
-                candles = list(self._candle_cache.get(symbol, []))
+                candles = list(self._candle_cache.get(_sym, []))
             if not candles:
                 return []
             if target_mins == base_mins:
