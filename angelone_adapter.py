@@ -388,7 +388,16 @@ class AngelOneAdapter:
                     except: pass
                     self._ws=None
                     self._ws_connected.clear()
-                    time.sleep(3)
+                    time.sleep(5)
+                    # Refresh JWT and feed token before reconnect
+                    try:
+                        r = self._smart_api.generateToken(self._refresh_token)
+                        if r and r.get("data"):
+                            self._jwt_token = r["data"].get("jwtToken", self._jwt_token)
+                            self._feed_token = r["data"].get("feedToken", self._feed_token)
+                            _log.info("[AngelOne] Tokens refreshed before reconnect")
+                    except Exception as _re:
+                        _log.warning(f"[AngelOne] Token refresh failed: {_re}")
                     self._connect_websocket()
             except Exception as e:
                 _log.error(f"[AngelOne] Watchdog error: {e}")
