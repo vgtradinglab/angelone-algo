@@ -4327,6 +4327,14 @@ class Engine:
                                      if self.broker.get_fut_chain(instr, e)]
                     if _all_fut_exps: _fut_exp = _all_fut_exps[0]
                     fut_chain = self.broker.get_fut_chain(instr, _fut_exp)
+                    # Register MCX futures token for candle builder
+                    if info.get("is_mcx") and fut_chain and hasattr(self.broker,'register_symbol_token'):
+                        for _fc in fut_chain:
+                            if str(_fc.get("instrument_type","")).upper() == "FUT":
+                                _ftok = str(_fc.get("instrument_token",""))
+                                if _ftok:
+                                    self.broker.register_symbol_token(instr, _ftok)
+                                break
                     # Combine — deduplicate by instrument_token
                     seen_toks = set()
                     chain_et  = []
