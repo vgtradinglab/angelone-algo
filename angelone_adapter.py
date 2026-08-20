@@ -295,7 +295,7 @@ class AngelOneAdapter:
         try:
             self._ws=SmartWebSocketV2(
                 self._jwt_token,self._api_key,self._client_code,self._feed_token,
-                max_retry_attempt=0)
+                max_retry_attempt=5, retry_strategy=0, retry_delay=10, retry_duration=30)
             self._ws.on_open =self._on_open
             self._ws.on_data =self._on_data
             self._ws.on_error=self._on_error
