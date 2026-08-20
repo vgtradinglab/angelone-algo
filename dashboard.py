@@ -1446,12 +1446,17 @@ def api_toggle_strategy(sid):
                             if opt_toks: engine_ref.broker.subscribe_feed(opt_toks, lambda tok,ltp: price_store.update(tok,ltp))
                             # For MCX: explicitly register futures token for candle builder
                             if info.get("is_mcx"):
+                                _fut_found = False
                                 for _fc in chain:
                                     if str(_fc.get("instrument_type","")).upper() == "FUT":
                                         _ftok = str(_fc.get("instrument_token",""))
                                         if _ftok:
                                             engine_ref.broker.register_symbol_token(instr, _ftok)
+                                            _log.info(f"[Dashboard] MCX candle map registered: {instr} → {_ftok}")
+                                            _fut_found = True
                                         break
+                                if not _fut_found:
+                                    _log.warning(f"[Dashboard] MCX candle map: no FUT found in chain for {instr} (chain size={len(chain)})")
                             _t.sleep(2)  # wait for prices
                             om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
                             import copy as _copy
