@@ -375,7 +375,7 @@ class AngelOneAdapter:
         while not self._watchdog_stop:
             time.sleep(30)
             try:
-                if time.time()-self._last_tick_ts>120 and self._connected:
+                if time.time()-self._last_tick_ts>120:
                     _log.warning("[AngelOne] Feed stale — reconnecting all connections...")
                     self._feed_healthy=False
                     if self._notifier:
