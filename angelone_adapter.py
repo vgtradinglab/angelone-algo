@@ -41,13 +41,6 @@ class AngelOneAdapter:
         self._load_candle_cache()  # load yesterday's candles from disk
         self._worker_started=self._worker_stop=False
         self._lock=threading.Lock()
-        # 3 WS connections: WS1=NIFTY+SENSEX, WS2=BANKNIFTY+FINNIFTY, WS3=MIDCPNIFTY+MCX
-        self._WS1_INSTRS={"NIFTY","SENSEX","BANKEX"}
-        self._WS2_INSTRS={"BANKNIFTY","FINNIFTY"}
-        self._WS3_INSTRS={"MIDCPNIFTY","CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
-        self._ws1_tokens=[]
-        self._ws2_tokens=[]
-        self._ws3_tokens=[]
 
     def set_notifier(self, n): self._notifier=n
     def get_last_order_error(self): return self._last_order_error
@@ -248,11 +241,14 @@ class AngelOneAdapter:
             return
         self._sub_tokens=self._sub_tokens+new_tokens
         # Register token→instrument mapping for candle builder
+        # Only register INDEX tokens and MCX FUTURES tokens — not option tokens
+        _KNOWN_INSTRS = {"NIFTY","BANKNIFTY","SENSEX","CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
         for t in new_tokens:
             tok = str(t.get("instrument_token",""))
-            # Use instrument name (NIFTY, BANKNIFTY etc.) for index tokens
             sym = str(t.get("instrument","") or t.get("tradingsymbol",""))
-            if tok and sym:
+            exch = str(t.get("exchange_segment","") or t.get("exchange","")).upper()
+            # Only register if it is a known base instrument (index or MCX futures)
+            if tok and sym and sym in _KNOWN_INSTRS:
                 self.register_symbol_token(sym, tok)
         if self._ws is None:
             # First call — create WebSocket connection
@@ -362,18 +358,15 @@ class AngelOneAdapter:
                 try:
                     if self._ws1: self._ws1.close_connection()
                 except: pass
-                self._ws1=self._make_ws("WS1",self._ws1_tokens)
                 self._ws=self._ws1
             elif num==2:
                 try:
                     if self._ws2: self._ws2.close_connection()
                 except: pass
-                self._ws2=self._make_ws("WS2",self._ws2_tokens)
             elif num==3:
                 try:
                     if self._ws3: self._ws3.close_connection()
                 except: pass
-                self._ws3=self._make_ws("WS3",self._ws3_tokens)
         except Exception as e:
             _log.error(f"[AngelOne] Reconnect WS{num} error: {e}")
 
