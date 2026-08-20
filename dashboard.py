@@ -303,6 +303,12 @@ def midnight_reset():
                     break
         if engine_ref and not has_positional_holding:
             engine_ref.running = False
+            # Save candle cache to disk before restart
+            try:
+                if engine_ref and engine_ref.broker and hasattr(engine_ref.broker,'save_candle_cache'):
+                    engine_ref.broker.save_candle_cache()
+            except Exception as _ce:
+                _log.warning(f"Candle cache save error: {_ce}")
             # Clear runner state so fresh strategies can be loaded next day
             engine_ref.runners.clear()
         # Clean up old system journal logs — keep last 2 days only

@@ -33,6 +33,12 @@ class AngelOneAdapter:
         self._ws=None
         self._ws_connected=threading.Event()
         self._tick_queue=queue.Queue(maxsize=10000)
+        # ── Local candle cache (built from WebSocket ticks — zero REST API calls) ──
+        self._candle_cache={}      # {symbol: [closed_candles]}
+        self._candle_current={}    # {symbol: {o,h,l,c,ts,token}}
+        self._candle_lock=threading.Lock()
+        self._token_symbol_map={}  # {token: symbol} reverse lookup
+        self._load_candle_cache()  # load yesterday's candles from disk
         self._worker_started=self._worker_stop=False
         self._lock=threading.Lock()
         # 3 WS connections: WS1=NIFTY+SENSEX, WS2=BANKNIFTY+FINNIFTY, WS3=MIDCPNIFTY+MCX
@@ -241,6 +247,12 @@ class AngelOneAdapter:
             _log.info("[AngelOne] No new tokens to subscribe")
             return
         self._sub_tokens=self._sub_tokens+new_tokens
+        # Register symbol→token mapping for candle builder
+        for t in new_tokens:
+            tok = str(t.get("instrument_token",""))
+            sym = str(t.get("tradingsymbol","") or t.get("instrument",""))
+            if tok and sym:
+                self.register_symbol_token(sym, tok)
         if self._ws is None:
             # First call — create WebSocket connection
             self._connect_websocket()
@@ -336,7 +348,9 @@ class AngelOneAdapter:
                 if self._on_tick_cb and isinstance(msg,dict):
                     token=str(msg.get("token",""))
                     ltp=float(msg.get("last_traded_price",0))/100
-                    if token and ltp>0: self._on_tick_cb(token,ltp)
+                    if token and ltp>0:
+                        self._on_tick_cb(token,ltp)
+                        self._build_candle(token,ltp)
             except queue.Empty: continue
             except Exception as e: _log.error(f"[AngelOne] Tick worker error: {e}")
 
@@ -497,26 +511,96 @@ class AngelOneAdapter:
         return {}
 
     def get_candles(self,exchange,symbol,interval,from_date,to_date):
+        """Return candles from local WebSocket-built cache. Zero REST API calls."""
         try:
-            with _CANDLE_LOCK:
-                _elapsed = time.time() - _CANDLE_LAST_TS[0]
-                if _elapsed < 20.0:
-                    time.sleep(20.0 - _elapsed)
-                _CANDLE_LAST_TS[0] = time.time()
-                ao_exch=EXCHANGE_MAP.get(exchange,exchange.upper())
-                token=self.get_symbol_token(ao_exch,symbol)
-                if not token:
-                    _log.error(f"[AngelOne] get_candles: token not found for {symbol}")
-                    return []
-                r=self._smart_api.getCandleData({
-                    "exchange":ao_exch,"symboltoken":token,
-                    "interval":interval,"fromdate":from_date,"todate":to_date})
-            if r and r.get("status")!=False: return r.get("data") or []
-            _log.error(f"[AngelOne] get_candles failed: {r.get('message','') if r else ''}")
-            return []
+            # Aggregate 5 Min candles into requested interval
+            INTERVAL_MINS = {"FIVE_MINUTE":5,"FIFTEEN_MINUTE":15,"THIRTY_MINUTE":30,"ONE_HOUR":60}
+            target_mins = INTERVAL_MINS.get(interval, 5)
+            base_mins   = 5  # we store 5 Min candles
+            with self._candle_lock:
+                candles = list(self._candle_cache.get(symbol, []))
+            if not candles:
+                return []
+            if target_mins == base_mins:
+                return candles
+            # Aggregate: combine N×5Min candles into target timeframe
+            result = []
+            n = target_mins // base_mins
+            for i in range(0, len(candles)-n+1, n):
+                group = candles[i:i+n]
+                if len(group) < n: break
+                agg = [
+                    group[0][0],                          # timestamp
+                    group[0][1],                          # open
+                    max(c[2] for c in group),             # high
+                    min(c[3] for c in group),             # low
+                    group[-1][4],                         # close
+                    sum(c[5] for c in group),             # volume
+                ]
+                result.append(agg)
+            return result
         except Exception as e:
             _log.error(f"[AngelOne] get_candles error: {e}")
             return []
+
+    def _build_candle(self,token,ltp):
+        """Build 5-Min OHLC candles from WebSocket ticks."""
+        try:
+            sym = self._token_symbol_map.get(token)
+            if not sym: return
+            now = time.time()
+            # 5-minute bucket
+            bucket = int(now // 300) * 300
+            with self._candle_lock:
+                cur = self._candle_current.get(sym)
+                if cur is None or cur["ts"] != bucket:
+                    # Close previous candle
+                    if cur is not None:
+                        closed = [cur["ts"],cur["o"],cur["h"],cur["l"],cur["c"],0]
+                        if sym not in self._candle_cache:
+                            self._candle_cache[sym] = []
+                        self._candle_cache[sym].append(closed)
+                        # Keep max 300 candles (~25 hours)
+                        if len(self._candle_cache[sym]) > 300:
+                            self._candle_cache[sym] = self._candle_cache[sym][-300:]
+                    # Start new candle
+                    self._candle_current[sym] = {"ts":bucket,"o":ltp,"h":ltp,"l":ltp,"c":ltp}
+                else:
+                    if ltp > cur["h"]: cur["h"] = ltp
+                    if ltp < cur["l"]: cur["l"] = ltp
+                    cur["c"] = ltp
+        except Exception as e:
+            _log.error(f"[AngelOne] Candle builder error: {e}")
+
+    def register_symbol_token(self,symbol,token):
+        """Register symbol→token mapping for candle builder."""
+        if symbol and token:
+            self._token_symbol_map[str(token)] = symbol
+
+    def save_candle_cache(self):
+        """Save candle cache to disk at midnight for next day startup."""
+        try:
+            import json, os
+            for sym, candles in self._candle_cache.items():
+                path = f"/tmp/candle_cache_{sym}.json"
+                with open(path,"w") as f:
+                    json.dump(candles[-300:], f)
+            _log.info(f"[AngelOne] Candle cache saved for {len(self._candle_cache)} instruments")
+        except Exception as e:
+            _log.error(f"[AngelOne] Save candle cache error: {e}")
+
+    def _load_candle_cache(self):
+        """Load yesterday's candle cache from disk on startup."""
+        try:
+            import json, glob
+            for path in glob.glob("/tmp/candle_cache_*.json"):
+                sym = path.replace("/tmp/candle_cache_","").replace(".json","")
+                with open(path,"r") as f:
+                    self._candle_cache[sym] = json.load(f)
+            if self._candle_cache:
+                _log.info(f"[AngelOne] Loaded candle cache for {len(self._candle_cache)} instruments")
+        except Exception as e:
+            _log.error(f"[AngelOne] Load candle cache error: {e}")
 
     def get_rest_ltp(self, exchange: str, symbol: str, token: str) -> float:
         """REST fallback LTP using ltpData — used when WebSocket has no price yet."""
