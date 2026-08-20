@@ -8,7 +8,7 @@ _log = logging.getLogger("AngelOneAdapter")
 SCRIP_MASTER_URL = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
 
 EXCHANGE_TYPE = {"NSE":1,"NFO":2,"BSE":3,"BFO":4,"MCX":5}
-EXCHANGE_MAP  = {"nse_cm":"NSE","nse_fo":"NFO","bse_cm":"BSE","bse_fo":"BFO","mcx_fo":"MCX","NSE":"NSE","NFO":"NFO","BSE":"BSE","BFO":"BFO","MCX":"MCX"}
+EXCHANGE_MAP  = {"nse_cm":"NSE","nse_fo":"NFO","bse_cm":"BSE","bse_fo":"BFO","mcx_fo":"MCX","MCX_FO":"MCX","NSE_CM":"NSE","NSE_FO":"NFO","BSE_CM":"BSE","BSE_FO":"BFO","NSE":"NSE","NFO":"NFO","BSE":"BSE","BFO":"BFO","MCX":"MCX"}
 PRODUCT_MAP   = {"MIS":"INTRADAY","NRML":"CARRYFORWARD","CNC":"DELIVERY"}
 OTYPE_MAP     = {"L":"LIMIT","M":"MARKET","SL":"STOPLOSS_LIMIT","SL-M":"STOPLOSS_MARKET"}
 
@@ -375,7 +375,10 @@ class AngelOneAdapter:
         while not self._watchdog_stop:
             time.sleep(30)
             try:
-                if time.time()-self._last_tick_ts>120:
+                _gap = time.time()-self._last_tick_ts
+                if _gap > 60:
+                    _log.warning(f"[AngelOne] Feed gap: {_gap:.0f}s since last tick")
+                if _gap>120:
                     _log.warning("[AngelOne] Feed stale — reconnecting all connections...")
                     self._feed_healthy=False
                     if self._notifier:
