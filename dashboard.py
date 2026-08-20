@@ -1444,6 +1444,14 @@ def api_toggle_strategy(sid):
                                               "instrument":instr}
                                 opt_toks.append(_idx_entry)
                             if opt_toks: engine_ref.broker.subscribe_feed(opt_toks, lambda tok,ltp: price_store.update(tok,ltp))
+                            # For MCX: explicitly register futures token for candle builder
+                            if info.get("is_mcx"):
+                                for _fc in chain:
+                                    if str(_fc.get("instrument_type","")).upper() == "FUT":
+                                        _ftok = str(_fc.get("instrument_token",""))
+                                        if _ftok:
+                                            engine_ref.broker.register_symbol_token(instr, _ftok)
+                                        break
                             _t.sleep(2)  # wait for prices
                             om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
                             import copy as _copy

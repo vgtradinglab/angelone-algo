@@ -241,14 +241,14 @@ class AngelOneAdapter:
             return
         self._sub_tokens=self._sub_tokens+new_tokens
         # Register token→instrument mapping for candle builder
-        # Only register INDEX tokens and MCX FUTURES tokens — not option tokens
-        _KNOWN_INSTRS = {"NIFTY","BANKNIFTY","SENSEX","CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"}
+        # Only register INDEX tokens (NSE/BSE) — MCX futures registered separately via register_symbol_token
+        _NSE_BSE_INSTRS = {"NIFTY","BANKNIFTY","SENSEX"}
         for t in new_tokens:
             tok = str(t.get("instrument_token",""))
             sym = str(t.get("instrument","") or t.get("tradingsymbol",""))
             exch = str(t.get("exchange_segment","") or t.get("exchange","")).upper()
-            # Only register if it is a known base instrument (index or MCX futures)
-            if tok and sym and sym in _KNOWN_INSTRS:
+            # Only register NSE/BSE index tokens — not option tokens, not MCX
+            if tok and sym and sym in _NSE_BSE_INSTRS and exch in ("NSE","BSE","NSE_CM","BSE_CM"):
                 self.register_symbol_token(sym, tok)
         if self._ws is None:
             # First call — create WebSocket connection
@@ -581,6 +581,7 @@ class AngelOneAdapter:
         """Register symbol→token mapping for candle builder."""
         if symbol and token:
             self._token_symbol_map[str(token)] = symbol
+            _log.info(f"[AngelOne] Candle map: token={token} → {symbol}")
 
     def save_candle_cache(self):
         """Save candle cache to disk at midnight for next day startup."""
