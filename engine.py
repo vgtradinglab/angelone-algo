@@ -1897,6 +1897,19 @@ class StrategyRunner:
                                     results.append(ls)
                         self.leg_states = results
                         self.log.info(f"{self.name}: {len(results)} legs entered")
+                        # Telegram alert for indicator entry
+                        try:
+                            _ind_type = ind_panels[0].get("type","") if ind_panels else ""
+                            _tf = ind_panels[0].get("timeframe","") if ind_panels else ""
+                            _legs_msg = ""
+                            for _i,_ls in enumerate(results,1):
+                                _legs_msg += f"\n#{_i} {_ls.action} {_ls.opt_type} | {_ls.symbol} | Entry: Rs {_ls.entry_price:.2f}"
+                            _msg = (f"\U0001f4ca [{_ind_type}] Signal | {self.name}\n"
+                                    f"Index: {instr} | Timeframe: {_tf} | Signal: {signal}"
+                                    f"{_legs_msg}")
+                            self.notify.telegram(_msg)
+                        except Exception as _te:
+                            pass
 
             except Exception as e:
                 self.log.error(f"{self.name}: Indicator runner error: {e}")
