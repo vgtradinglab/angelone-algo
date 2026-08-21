@@ -37,7 +37,7 @@ def get_signal(broker, exchange, symbol, timeframe):
     SELL — Price closes below VWAP
     """
     try:
-        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=100)
+        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=2)
         if len(candles) < 2:
             return None, None
         vwap       = calculate_vwap(candles)
