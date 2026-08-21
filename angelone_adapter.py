@@ -565,6 +565,11 @@ class AngelOneAdapter:
         try:
             sym = self._token_symbol_map.get(token)
             if not sym: return
+            # Only build candles during market hours (9:15 AM onwards)
+            import datetime as _dt
+            _now_t = _dt.datetime.now()
+            if _now_t.hour < 9 or (_now_t.hour == 9 and _now_t.minute < 15):
+                return
             now = time.time()
             # 5-minute bucket
             bucket = int(now // 300) * 300
