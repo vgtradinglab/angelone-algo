@@ -296,6 +296,7 @@ class AngelOneAdapter:
             self._ws=SmartWebSocketV2(
                 self._jwt_token,self._api_key,self._client_code,self._feed_token,
                 max_retry_attempt=5, retry_strategy=0, retry_delay=10, retry_duration=30)
+            self._ws.RESUBSCRIBE_FLAG=False  # Always call our on_open for resubscription
             self._ws.on_open =self._on_open
             self._ws.on_data =self._on_data
             self._ws.on_error=self._on_error
@@ -303,7 +304,7 @@ class AngelOneAdapter:
             threading.Thread(target=self._ws.connect,daemon=True,name="WSConnect").start()
             _log.info("[AngelOne] WebSocket connecting...")
         except Exception as e:
-            _log.error(f"[AngelOne] {name} connect error: {e}")
+            _log.error(f"[AngelOne] WebSocket connect error: {e}")
             return None
 
     def _on_open(self,wsapp):
@@ -352,23 +353,8 @@ class AngelOneAdapter:
             except Exception as e: _log.error(f"[AngelOne] Tick worker error: {e}")
 
     def _reconnect_ws(self,num):
-        """Close and reconnect one WS connection."""
-        try:
-            if num==1:
-                try:
-                    if self._ws1: self._ws1.close_connection()
-                except: pass
-                self._ws=self._ws1
-            elif num==2:
-                try:
-                    if self._ws2: self._ws2.close_connection()
-                except: pass
-            elif num==3:
-                try:
-                    if self._ws3: self._ws3.close_connection()
-                except: pass
-        except Exception as e:
-            _log.error(f"[AngelOne] Reconnect WS{num} error: {e}")
+        """Legacy method — no longer used."""
+        pass
 
     def _watchdog(self):
         """Monitor feed health. Reconnect if stale for 120 seconds."""
