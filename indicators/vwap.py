@@ -24,7 +24,9 @@ def calculate_vwap(candles):
             total_tp_vol += tp * volume
             total_vol    += volume
         if total_vol == 0:
-            return None
+            # No volume data — use simple average of typical prices
+            total_tp = sum((c[2]+c[3]+c[4])/3 for c in candles)
+            return round(total_tp / len(candles), 2)
         return round(total_tp_vol / total_vol, 2)
     except Exception as e:
         _log.error(f"[VWAP] calculate_vwap error: {e}")
