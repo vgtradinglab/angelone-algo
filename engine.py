@@ -1809,6 +1809,7 @@ class StrategyRunner:
             # After end time — exit and stop
             if now_s >= end_t:
                 self.log.info(f"{self.name}: End time reached — stopping indicator strategy.")
+                self._exit_all("End time reached")
                 self.status = "EXITED"
                 break
 
