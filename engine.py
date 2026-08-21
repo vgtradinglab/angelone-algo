@@ -1801,7 +1801,6 @@ class StrategyRunner:
                 continue
 
             now_s = now.strftime("%H:%M:%S")
-
             # Before start time — wait
             if now_s < start_t:
                 _time.sleep(10)

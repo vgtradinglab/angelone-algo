@@ -64,7 +64,7 @@ def get_signal(broker, exchange, symbol, timeframe, length=10, factor=3):
     SELL — SuperTrend flips bearish
     """
     try:
-        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+100)
+        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+2)
         if len(candles) < length + 2:
             return None, None
         results = calculate_supertrend(candles, length, factor)

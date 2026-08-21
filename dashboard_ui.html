@@ -1734,29 +1734,30 @@ body{
             <select class="fsel" id="indTimeframe">
               <option value="5 Min" selected>5 Min</option>
               <option value="15 Min">15 Min</option>
-              <option value="30 Min">30 Min</option>
-              <option value="1 Hour">1 Hour</option>
             </select>
           </div>
           <div class="fg" id="indLengthWrap">
             <label class="flbl">Length</label>
-            <input class="fin" id="indLength" type="number" value="9" min="1" max="50" style="width:80px">
+            <select class="fsel" id="indLength" style="width:80px" onchange="onIndLengthChange()">
+              <option value="9" selected>9</option>
+              <option value="5">5</option>
+            </select>
           </div>
           <div class="fg" id="indFactorWrap" style="display:none">
             <label class="flbl">Factor</label>
-            <input class="fin" id="indFactor" type="number" value="3" min="1" max="5" step="0.1" style="width:80px">
+            <input class="fin" id="indFactor" type="number" value="3" min="3" max="3" step="0.1" style="width:80px" readonly>
           </div>
         </div>
         <div class="frow" id="indRsiWrap" style="display:none;margin-top:8px">
           <div class="fg">
             <label class="flbl">Upper Level</label>
-            <input class="fin" id="indUpper" type="number" value="70" style="width:80px">
+            <input class="fin" id="indUpper" type="number" value="70" style="width:80px" readonly>
           </div>
           <div class="fg">
             <label class="flbl">Lower Level</label>
-            <input class="fin" id="indLower" type="number" value="30" style="width:80px">
+            <input class="fin" id="indLower" type="number" value="30" style="width:80px" readonly>
           </div>
-          <div class="fg">
+          <div class="fg" style="display:none">
             <label class="flbl">Use Middle (50)</label>
             <div class="tg" id="indMiddleTg">
               <button class="tgb" onclick="tog(this,'indmid')">Yes</button>
@@ -4420,14 +4421,24 @@ function onIndTypeChange(){
   if(lengthWrap) lengthWrap.style.display = '';
   if(factorWrap) factorWrap.style.display = 'none';
   if(rsiWrap)    rsiWrap.style.display    = 'none';
-  if(type==='EMA'){ document.getElementById('indLength').value=9; }
-  else if(type==='SuperTrend'){
-    document.getElementById('indLength').value=10;
+  var lenEl = document.getElementById('indLength');
+  if(type==='EMA'){
+    // EMA: dropdown with 9 (default) and 5
+    lenEl.innerHTML='<option value="9" selected>9</option><option value="5">5</option>';
+    lenEl.value=9;
+  } else if(type==='SuperTrend'){
+    // SuperTrend: dropdown with 10 (default) and 7
+    lenEl.innerHTML='<option value="10" selected>10</option><option value="7">7</option>';
+    lenEl.value=10;
     if(factorWrap) factorWrap.style.display='';
     document.getElementById('indFactor').value=3;
   } else if(type==='RSI'){
-    document.getElementById('indLength').value=14;
+    // RSI: fixed length 14
+    lenEl.innerHTML='<option value="14" selected>14</option>';
+    lenEl.value=14;
     if(rsiWrap) rsiWrap.style.display='';
+    document.getElementById('indUpper').value=70;
+    document.getElementById('indLower').value=30;
   } else if(type==='CPR'||type==='VWAP'){
     if(lengthWrap) lengthWrap.style.display='none';
   }
@@ -4461,7 +4472,7 @@ function _renderIndExtra(){
     html+='</select></div>';
     // Timeframe
     html+='<div class="fg"><label class="flbl">Timeframe</label><select class="fsel" onchange="_indExtra['+i+'].timeframe=this.value">';
-    ['5 Min','15 Min','30 Min','1 Hour'].forEach(function(t){ html+='<option value="'+t+'"'+(p.timeframe===t?' selected':'')+'>'+t+'</option>'; });
+    ['5 Min','15 Min'].forEach(function(t){ html+='<option value="'+t+'"'+(p.timeframe===t?' selected':'')+'>'+t+'</option>'; });
     html+='</select></div>';
     // Length
     if(p.type!=='CPR'&&p.type!=='VWAP'){

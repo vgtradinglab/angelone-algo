@@ -37,7 +37,7 @@ def get_signal(broker, exchange, symbol, timeframe,
     If use_middle: BUY above 50, SELL below 50
     """
     try:
-        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+100)
+        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+2)
         if len(candles) < length + 2:
             return None, None
         closes   = [c[4] for c in candles]
