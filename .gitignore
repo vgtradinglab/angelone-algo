@@ -8,3 +8,4 @@ pnl_history.json
 scrip_cache/
 cert.pem
 key.pem
+candle_cache_*.json

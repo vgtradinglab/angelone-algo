@@ -591,7 +591,7 @@ class AngelOneAdapter:
         try:
             import json, os
             for sym, candles in self._candle_cache.items():
-                path = f"/tmp/candle_cache_{sym}.json"
+                path = f"/home/ubuntu/angelone-algo/candle_cache_{sym}.json"
                 with open(path,"w") as f:
                     json.dump(candles[-300:], f)
             _log.info(f"[AngelOne] Candle cache saved for {len(self._candle_cache)} instruments")
@@ -602,7 +602,7 @@ class AngelOneAdapter:
         """Load yesterday's candle cache from disk on startup."""
         try:
             import json, glob
-            for path in glob.glob("/tmp/candle_cache_*.json"):
+            for path in glob.glob("/home/ubuntu/angelone-algo/candle_cache_*.json"):
                 sym = path.replace("/tmp/candle_cache_","").replace(".json","")
                 with open(path,"r") as f:
                     self._candle_cache[sym] = json.load(f)
