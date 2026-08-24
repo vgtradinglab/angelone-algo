@@ -4198,6 +4198,26 @@ function saveStrategy(){
   var _activeTypBtn=document.querySelector('#stratTypeTg .tgb.on');
   var _isInd=_activeTypBtn&&_activeTypBtn.dataset.type==='indicator';
   if(!legs.length&&!_isInd){alert('Please add at least one leg.');return;}
+<<<<<<< Updated upstream
+=======
+  var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
+  var _selIdx=document.getElementById('csIdx').value;
+  if(_isInd && _mcxInstrs.indexOf(_selIdx)>=0){alert('Indicator strategies only supported for NIFTY, BANKNIFTY and SENSEX.');return;}
+  // Block MCX instruments for indicator strategies
+  var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
+  var _selIdx=document.getElementById('csIdx').value;
+  if(_isInd && _mcxInstrs.indexOf(_selIdx)>=0){
+    alert('Indicator strategies are only supported for NIFTY, BANKNIFTY and SENSEX.');
+    return;
+  }
+  // Block MCX instruments for indicator strategies
+  var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
+  var _selIdx=document.getElementById('csIdx').value;
+  if(_isInd && _mcxInstrs.indexOf(_selIdx)>=0){
+    alert('Indicator strategies are only supported for NIFTY, BANKNIFTY and SENSEX.\nMCX instruments are not supported for indicator mode.');
+    return;
+  }
+>>>>>>> Stashed changes
   const sH=parseInt(document.getElementById('csStartH').value);
   const sM=parseInt(document.getElementById('csStartM').value);
   const sS=parseInt(document.getElementById('csStartS').value);

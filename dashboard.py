@@ -519,6 +519,13 @@ def compress_response(response):
 # Load dashboard HTML from same folder as this file
 _ui_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard_ui.html")
 
+@app.after_request
+def add_no_cache(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.route("/")
 def index():
     if os.path.exists(_ui_path):
