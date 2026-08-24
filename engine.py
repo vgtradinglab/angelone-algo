@@ -1790,6 +1790,7 @@ class StrategyRunner:
         self.status = "READY"
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
+        _start_time = _dt.now(IST)  # datetime when strategy started
 
         while not self.stopped:
             now     = _dt.now(IST)
@@ -1881,7 +1882,8 @@ class StrategyRunner:
 
                 # Check if any legs still open — don't re-enter while position open
                 _open_legs = [ls for ls in self.leg_states if ls.status == "OPEN"]
-                if signal and candle_ts != last_signal_candle and not _open_legs:
+                _candle_close = now.replace(minute=candle_ts,second=0,microsecond=0)
+                if signal and candle_ts != last_signal_candle and not _open_legs and _candle_close > _start_time:
                     last_signal_candle = candle_ts
                     self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"
