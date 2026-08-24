@@ -2684,7 +2684,7 @@ var RM_STRATS = [
    logic:{idx:'SENSEX',startTime:'12:00:00',endTime:'15:09:00',mtmSL:4000},
    legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
          {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-];;
+];
 
 function renderRmGrid(){
   var g = document.getElementById('rmGrid');
@@ -4199,7 +4199,10 @@ function saveStrategy(){
   var _isInd=_activeTypBtn&&_activeTypBtn.dataset.type==='indicator';
   if(!legs.length&&!_isInd){alert('Please add at least one leg.');return;}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
   var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
   var _selIdx=document.getElementById('csIdx').value;
   if(_isInd && _mcxInstrs.indexOf(_selIdx)>=0){alert('Indicator strategies only supported for NIFTY, BANKNIFTY and SENSEX.');return;}
