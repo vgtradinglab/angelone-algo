@@ -1879,7 +1879,9 @@ class StrategyRunner:
                 mins      = INTERVAL_MINUTES.get(first_tf, 5)
                 candle_ts = (now.minute // mins) * mins
 
-                if signal and candle_ts != last_signal_candle:
+                # Check if any legs still open — don't re-enter while position open
+                _open_legs = [ls for ls in self.leg_states if ls.status == "OPEN"]
+                if signal and candle_ts != last_signal_candle and not _open_legs:
                     last_signal_candle = candle_ts
                     self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"

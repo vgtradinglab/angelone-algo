@@ -883,7 +883,14 @@ def api_start_algo():
         except Exception as _e:
             _log.warning(f"refresh_instruments_from_broker: {_e}")
 
-        # Load all enabled strategies
+        # Load all enabled strategies — reload from disk to get latest changes
+        try:
+            import json as _json
+            with open("/home/ubuntu/angelone-algo/config.json","r") as _cf:
+                _fresh = _json.load(_cf)
+            config_ref.update(_fresh)
+        except Exception as _rce:
+            _log.warning(f"Config reload error: {_rce}")
         strats  = config_ref.get("strategies", [])
         enabled = [s for s in strats if s.get("enabled", True)]
 
