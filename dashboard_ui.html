@@ -4198,6 +4198,7 @@ function saveStrategy(){
   var _activeTypBtn=document.querySelector('#stratTypeTg .tgb.on');
   var _isInd=_activeTypBtn&&_activeTypBtn.dataset.type==='indicator';
   if(!legs.length&&!_isInd){alert('Please add at least one leg.');return;}
+  var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
   var _selIdx=document.getElementById('csIdx').value;
     return;
   }
