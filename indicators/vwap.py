@@ -39,10 +39,19 @@ def get_signal(broker, exchange, symbol, timeframe):
     SELL — Price closes below VWAP
     """
     try:
-        candles = get_candles(broker, exchange, symbol, timeframe, num_candles=2)
-        if len(candles) < 2:
+        # Fetch ALL today's candles for accurate session VWAP
+        all_candles = get_candles(broker, exchange, symbol, timeframe, num_candles=300)
+        if len(all_candles) < 2:
             return None, None
-        vwap       = calculate_vwap(candles)
+        # Filter only today's candles for VWAP
+        from datetime import date
+        import time as _t
+        today_start = _t.mktime(date.today().timetuple())
+        today_candles = [c for c in all_candles if c[0] >= today_start]
+        if len(today_candles) < 2:
+            today_candles = all_candles  # fallback
+        vwap       = calculate_vwap(today_candles)
+        candles    = today_candles  # use today's candles for crossover
         if vwap is None:
             return None, None
         curr_close = candles[-1][4]
