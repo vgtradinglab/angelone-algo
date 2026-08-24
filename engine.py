@@ -1790,6 +1790,7 @@ class StrategyRunner:
         self.status = "READY"
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
+        _initial_signal = None  # signal state at strategy start
         _start_time = _dt.now(IST)  # datetime when strategy started
 
         while not self.stopped:
@@ -1873,6 +1874,11 @@ class StrategyRunner:
                 # Check all panels — ALL must confirm
                 all_confirmed = all(_get_signal_for_panel(p) for p in ind_panels)
                 signal = "ABOVE" if all_confirmed else None
+                # Record initial signal state on first check
+                if _initial_signal is None:
+                    _initial_signal = signal
+                # Only enter if signal changed from initial state
+                _signal_changed = (signal != _initial_signal)
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
@@ -1883,7 +1889,7 @@ class StrategyRunner:
                 # Check if any legs still open — don't re-enter while position open
                 _open_legs = [ls for ls in self.leg_states if ls.status == "OPEN"]
                 _candle_close = now.replace(minute=candle_ts,second=0,microsecond=0)
-                if signal and candle_ts != last_signal_candle and not _open_legs and _candle_close > _start_time:
+                if signal and candle_ts != last_signal_candle and not _open_legs and _candle_close > _start_time and _signal_changed:
                     last_signal_candle = candle_ts
                     self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"
