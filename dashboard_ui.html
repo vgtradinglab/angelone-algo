@@ -2750,9 +2750,7 @@ function createRmStrategy(id){
       el=document.getElementById('csName'); if(el) el.value=tmpl.name;
       var rmSymEl=document.getElementById('rmSymbol');
       var rmSymVal=rmSymEl?rmSymEl.value:'NIFTY';
-      // For indicator strategies — only NSE/BSE instruments allowed
-      var _nseOnly=['NIFTY','BANKNIFTY','SENSEX'];
-      if(_nseOnly.indexOf(rmSymVal)<0) rmSymVal='NIFTY';
+
       var idxEl=document.getElementById('csIdx'); if(idxEl) idxEl.value=rmSymVal;
       legs=[{id:Date.now(),action:'BUY',prod:'MIS',type:'CE',lots:1,baseLots:1,
              stType:'Strike Type',strike:'ATM',premVal:0,sl:20,slU:'%',tp:40,tpU:'%',
@@ -4371,21 +4369,7 @@ function switchStratType(type){
   // Update toggle buttons
   var btns = document.querySelectorAll('#stratTypeTg .tgb');
   btns.forEach(function(b){ b.classList.toggle('on', b.dataset.type===type); });
-  // For indicator mode - hide MCX instruments, show only NSE/BSE
-  var idxSel = document.getElementById('csIdx');
-  if(idxSel){
-    var groups = idxSel.querySelectorAll('optgroup');
-    groups.forEach(function(og){
-      og.style.display = (type==='indicator' && og.label==='MCX') ? 'none' : '';
-    });
-    // If MCX instrument selected in indicator mode, switch to NIFTY
-    if(type==='indicator'){
-      var selOpt = idxSel.options[idxSel.selectedIndex];
-      if(selOpt && selOpt.closest('optgroup') && selOpt.closest('optgroup').label==='MCX'){
-        idxSel.value='NIFTY'; onIdx();
-      }
-    }
-  }
+
 
   // Show/hide sections
   var timeSections  = ['sectionLegs','sectionStratOpts','sectionTiming','sectionProtect','sectionAdvanced'];
