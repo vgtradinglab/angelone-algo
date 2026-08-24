@@ -2684,7 +2684,7 @@ var RM_STRATS = [
    logic:{idx:'SENSEX',startTime:'12:00:00',endTime:'15:09:00',mtmSL:4000},
    legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
          {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-];
+];;
 
 function renderRmGrid(){
   var g = document.getElementById('rmGrid');
@@ -4198,10 +4198,6 @@ function saveStrategy(){
   var _activeTypBtn=document.querySelector('#stratTypeTg .tgb.on');
   var _isInd=_activeTypBtn&&_activeTypBtn.dataset.type==='indicator';
   if(!legs.length&&!_isInd){alert('Please add at least one leg.');return;}
-  var _mcxInstrs=['CRUDEOIL','CRUDEOILM','NATURALGAS','NATGASMINI'];
-  var _selIdx=document.getElementById('csIdx').value;
-    return;
-  }
   const sH=parseInt(document.getElementById('csStartH').value);
   const sM=parseInt(document.getElementById('csStartM').value);
   const sS=parseInt(document.getElementById('csStartS').value);
