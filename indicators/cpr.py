@@ -16,16 +16,19 @@ def calculate_cpr(broker, exchange, symbol):
     try:
         now       = datetime.now()
         prev_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-        # Try going back up to 5 days to find last trading day
-        for i in range(1, 6):
-            d         = (now - timedelta(days=i)).strftime("%Y-%m-%d")
-            from_date = f"{d} 09:15"
-            to_date   = f"{d} 15:30"
-            candles   = broker.get_candles(exchange, symbol, "ONE_DAY", from_date, to_date)
-            if candles:
-                prev_high  = candles[-1][2]
-                prev_low   = candles[-1][3]
-                prev_close = candles[-1][4]
+        # Calculate previous day OHLC from 5-min candle cache
+        import time as _time
+        candles_5m = broker.get_candles(exchange, symbol, "FIVE_MINUTE", "", "")
+        if candles_5m:
+            # Get today's date start timestamp
+            from datetime import date
+            today_start = datetime.combine(date.today(), datetime.min.time()).timestamp()
+            # Filter yesterday's candles (before today)
+            prev_candles = [c for c in candles_5m if c[0] < today_start]
+            if prev_candles:
+                prev_high  = max(c[2] for c in prev_candles)
+                prev_low   = min(c[3] for c in prev_candles)
+                prev_close = prev_candles[-1][4]
                 pivot  = (prev_high + prev_low + prev_close) / 3
                 bc     = (prev_high + prev_low) / 2
                 tc     = pivot + (pivot - bc)
