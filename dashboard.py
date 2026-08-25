@@ -910,21 +910,21 @@ def api_start_algo():
 
         if enabled:
             engine_ref.load_strategies(enabled)
-            # Also register ALL MCX instruments for candle building
+            # Also register ALL MCX instruments for candle building — from cache file
+            import json as _jmc2
             _mcx_instrs2 = ["CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"]
-            _all_instrs2 = engine_ref.broker._instruments if hasattr(engine_ref.broker,'_instruments') else {}
-            for _mcx in _mcx_instrs2:
-                try:
-                    _futs2 = [(k,v) for k,v in _all_instrs2.items()
-                              if v.get("name","").upper()==_mcx and v.get("instrumenttype","")=="FUTCOM"]
-                    _futs2.sort(key=lambda x: x[1].get("expiry",""))
+            try:
+                _cache_data2 = _jmc2.load(open('/tmp/angelone_instruments_cache.json'))
+                for _mcx in _mcx_instrs2:
+                    _futs2 = [x for x in _cache_data2 if x.get('name','').upper()==_mcx and x.get('instrumenttype','')=='FUTCOM']
+                    _futs2.sort(key=lambda x: x.get('expiry',''))
                     if _futs2:
-                        _ftok2 = str(_futs2[0][1].get("token",""))
+                        _ftok2 = str(_futs2[0].get('token',''))
                         if _ftok2:
                             engine_ref.broker.register_symbol_token(_mcx, _ftok2)
                             _log.info(f"[WS] Auto-registered MCX candle token: {_mcx} → {_ftok2}")
-                except Exception as _me2:
-                    _log.warning(f"[WS] MCX candle register failed for {_mcx}: {_me2}")
+            except Exception as _me2:
+                _log.warning(f"[WS] MCX candle register failed: {_me2}")
         else:
             _log.info("No enabled strategies — starting WebSocket for dynamic strategy creation.")
             # Start WebSocket with just index tokens so connection is live
@@ -936,25 +936,22 @@ def api_start_algo():
                     _idx_toks.append({"instrument_token": _itok["index_token"],
                                       "exchange_segment": _itok.get("index_exch","NSE"),
                                       "instrument": _instr})
-            # Add MCX futures tokens for candle building — directly from instrument master
+            # Add MCX futures tokens for candle building — from cache file
+            import json as _jmc, glob as _gmc
             _mcx_instrs = ["CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"]
-            _all_instrs = engine_ref.broker._instruments if hasattr(engine_ref.broker,'_instruments') else {}
-            for _mcx in _mcx_instrs:
-                try:
-                    # Find nearest futures from instrument master
-                    _futs = [(k,v) for k,v in _all_instrs.items()
-                             if v.get("name","").upper()==_mcx and v.get("instrumenttype","")=="FUTCOM"]
-                    _futs.sort(key=lambda x: x[1].get("expiry",""))
+            try:
+                _cache_data = _jmc.load(open('/tmp/angelone_instruments_cache.json'))
+                for _mcx in _mcx_instrs:
+                    _futs = [x for x in _cache_data if x.get('name','').upper()==_mcx and x.get('instrumenttype','')=='FUTCOM']
+                    _futs.sort(key=lambda x: x.get('expiry',''))
                     if _futs:
-                        _ftok = str(_futs[0][1].get("token",""))
+                        _ftok = str(_futs[0].get('token',''))
                         if _ftok:
                             engine_ref.broker.register_symbol_token(_mcx, _ftok)
-                            _idx_toks.append({"instrument_token": _ftok,
-                                              "exchange_segment": "MCX",
-                                              "instrument": _mcx})
+                            _idx_toks.append({"instrument_token": _ftok, "exchange_segment": "MCX", "instrument": _mcx})
                             _log.info(f"[WS] Auto-registered MCX candle token: {_mcx} → {_ftok}")
-                except Exception as _me:
-                    _log.warning(f"[WS] MCX candle register failed for {_mcx}: {_me}")
+            except Exception as _me:
+                _log.warning(f"[WS] MCX candle register failed: {_me}")
             if _idx_toks:
                 engine_ref.broker.subscribe_feed(_idx_toks, lambda tok,ltp: price_store.update(tok,ltp))
                 _log.info(f"[WS] Started WebSocket with {len(_idx_toks)} index tokens — ready for dynamic strategies")
