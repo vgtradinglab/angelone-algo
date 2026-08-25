@@ -910,20 +910,21 @@ def api_start_algo():
 
         if enabled:
             engine_ref.load_strategies(enabled)
-            # Also register ALL instruments for candle building regardless of strategies
-            _mcx_instrs = ["CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"]
-            for _mcx in _mcx_instrs:
+            # Also register ALL MCX instruments for candle building
+            _mcx_instrs2 = ["CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"]
+            _all_instrs2 = engine_ref.broker._instruments if hasattr(engine_ref.broker,'_instruments') else {}
+            for _mcx in _mcx_instrs2:
                 try:
-                    _exps = engine_ref.broker.get_available_expiries(_mcx)
-                    if _exps:
-                        _fc = engine_ref.broker.get_fut_chain(_mcx, _exps[0])
-                        for _f in (_fc or []):
-                            if str(_f.get("instrument_type","")).upper() == "FUT":
-                                _ftok = str(_f.get("instrument_token",""))
-                                if _ftok:
-                                    engine_ref.broker.register_symbol_token(_mcx, _ftok)
-                                break
-                except: pass
+                    _futs2 = [(k,v) for k,v in _all_instrs2.items()
+                              if v.get("name","").upper()==_mcx and v.get("instrumenttype","")=="FUTCOM"]
+                    _futs2.sort(key=lambda x: x[1].get("expiry",""))
+                    if _futs2:
+                        _ftok2 = str(_futs2[0][1].get("token",""))
+                        if _ftok2:
+                            engine_ref.broker.register_symbol_token(_mcx, _ftok2)
+                            _log.info(f"[WS] Auto-registered MCX candle token: {_mcx} → {_ftok2}")
+                except Exception as _me2:
+                    _log.warning(f"[WS] MCX candle register failed for {_mcx}: {_me2}")
         else:
             _log.info("No enabled strategies — starting WebSocket for dynamic strategy creation.")
             # Start WebSocket with just index tokens so connection is live
@@ -935,23 +936,25 @@ def api_start_algo():
                     _idx_toks.append({"instrument_token": _itok["index_token"],
                                       "exchange_segment": _itok.get("index_exch","NSE"),
                                       "instrument": _instr})
-            # Add MCX futures tokens for candle building
+            # Add MCX futures tokens for candle building — directly from instrument master
             _mcx_instrs = ["CRUDEOIL","CRUDEOILM","NATURALGAS","NATGASMINI"]
+            _all_instrs = engine_ref.broker._instruments if hasattr(engine_ref.broker,'_instruments') else {}
             for _mcx in _mcx_instrs:
                 try:
-                    _exps = engine_ref.broker.get_available_expiries(_mcx)
-                    if _exps:
-                        _fc = engine_ref.broker.get_fut_chain(_mcx, _exps[0])
-                        for _f in (_fc or []):
-                            if str(_f.get("instrument_type","")).upper() == "FUT":
-                                _ftok = str(_f.get("instrument_token",""))
-                                if _ftok:
-                                    engine_ref.broker.register_symbol_token(_mcx, _ftok)
-                                    _idx_toks.append({"instrument_token": _ftok,
-                                                      "exchange_segment": "MCX",
-                                                      "instrument": _mcx})
-                                break
-                except: pass
+                    # Find nearest futures from instrument master
+                    _futs = [(k,v) for k,v in _all_instrs.items()
+                             if v.get("name","").upper()==_mcx and v.get("instrumenttype","")=="FUTCOM"]
+                    _futs.sort(key=lambda x: x[1].get("expiry",""))
+                    if _futs:
+                        _ftok = str(_futs[0][1].get("token",""))
+                        if _ftok:
+                            engine_ref.broker.register_symbol_token(_mcx, _ftok)
+                            _idx_toks.append({"instrument_token": _ftok,
+                                              "exchange_segment": "MCX",
+                                              "instrument": _mcx})
+                            _log.info(f"[WS] Auto-registered MCX candle token: {_mcx} → {_ftok}")
+                except Exception as _me:
+                    _log.warning(f"[WS] MCX candle register failed for {_mcx}: {_me}")
             if _idx_toks:
                 engine_ref.broker.subscribe_feed(_idx_toks, lambda tok,ltp: price_store.update(tok,ltp))
                 _log.info(f"[WS] Started WebSocket with {len(_idx_toks)} index tokens — ready for dynamic strategies")
