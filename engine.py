@@ -211,7 +211,9 @@ def refresh_instruments_from_broker(broker) -> None:
         for name, rows in by_name.items():
             # Skip equity rows (EQ segment) — we only want derivatives
             types = {str(r.get("instrument_type","")).upper() for r in rows}
-            if types == {"EQ"} or not (types & {"CE","PE","FUT"}):
+            # AngelOne uses OPTIDX/FUTIDX/OPTFUT/FUTCOM instead of CE/PE/FUT
+            _angel_types = {"OPTIDX","FUTIDX","OPTFUT","FUTCOM","OPTSTK","FUTSTK"}
+            if types == {"EQ"} or not (types & {"CE","PE","FUT"} | _angel_types):
                 continue
 
             # Exchange from first row
