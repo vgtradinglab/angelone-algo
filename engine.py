@@ -2999,6 +2999,7 @@ class StrategyRunner:
                 if datetime.now().strftime("%H:%M:%S") >= end_t:
                     self.log.info(f"{self.name}: past end time before start -- skip today.")
                     self.status = "CLOSED"; return
+                if self.stopped: return
                 if not self.s.get("enabled", True):
                     self.status = "DISABLED"; return
                 time.sleep(0.5)
