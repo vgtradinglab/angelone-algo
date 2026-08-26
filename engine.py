@@ -2112,13 +2112,11 @@ class StrategyRunner:
         return base_lots * mult * lot_size
 
     def _order_qty_from_ls(self, ls) -> int:
-        """Order qty for exit — MCX=1 per lot, NSE/BSE=lot_size per lot."""
+        """Order qty for exit — uses actual lot size for both MCX and NSE/BSE."""
         info = self._instr_info()
-        if info.get("is_mcx"):
-            # MCX: ls.qty = lots * lot_size (for P&L), but exchange needs lots only
-            mcx_lot = info.get("lot", 1) or 1
-            return max(1, ls.qty // mcx_lot)
-        return ls.qty
+        lot_size = info.get("lot", 1) or 1
+        base_lots = max(1, ls.qty // lot_size)
+        return base_lots * lot_size
 
     def _order_qty(self, leg: dict) -> int:
         """Quantity to send to Zerodha API.
@@ -2129,7 +2127,7 @@ class StrategyRunner:
         mult_str  = str(self.s.get("mult","1X")).upper().replace("X","")
         mult      = max(1, int(mult_str) if mult_str.isdigit() else 1)
         info      = self._instr_info()
-        lot_size  = 1 if info.get("is_mcx") else info["lot"]
+        lot_size  = info.get("lot", 1) or 1  # AngelOne uses actual lot size for MCX too
         return base_lots * mult * lot_size
 
     def _compute_sl_price(self, leg: dict, entry: float) -> float:
