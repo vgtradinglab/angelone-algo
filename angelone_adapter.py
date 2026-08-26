@@ -426,11 +426,15 @@ class AngelOneAdapter:
             }
             _log.info(f"[AngelOne] {params['transactiontype']} {ao_exch}:{symbol} qty={qty} price={price}")
             r=self._smart_api.placeOrder(params)
-            if r and r.get("status")!=False:
+            # Handle string response (AngelOne sometimes returns order ID directly as string)
+            if isinstance(r, str) and r:
+                _log.info(f"[AngelOne] Order OK (str) — {r}")
+                return r
+            if r and isinstance(r, dict) and r.get("status")!=False:
                 oid=r.get("data","")
                 _log.info(f"[AngelOne] Order OK — {oid}")
                 return str(oid)
-            self._last_order_error=r.get("message","Unknown") if r else "No response"
+            self._last_order_error=r.get("message","Unknown") if isinstance(r,dict) else "No response"
             _log.error(f"[AngelOne] Order failed: {self._last_order_error}")
             return ""
         except Exception as e:
