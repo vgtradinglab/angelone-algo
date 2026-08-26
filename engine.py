@@ -1900,6 +1900,7 @@ class StrategyRunner:
                     _initial_signal = signal
                 # Only enter if signal changed from initial state
                 _signal_changed = (signal != _initial_signal)
+                _initial_signal = signal  # track last signal for change detection
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
@@ -1912,6 +1913,7 @@ class StrategyRunner:
                 _candle_close = now.replace(minute=candle_ts,second=0,microsecond=0)
                 if signal and candle_ts != last_signal_candle and not _open_legs and _candle_close > _start_time and _signal_changed:
                     last_signal_candle = candle_ts
+                    _initial_signal = signal  # update so next change is detected
                     self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"
                     # Execute legs same as time based strategy
