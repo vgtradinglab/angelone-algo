@@ -2686,45 +2686,73 @@ class StrategyRunner:
         if _exit_ref_ltp <= 0:
             _exit_ref_ltp = ls.avg_entry if ls.avg_entry > 0 else ls.sl_price
 
+        _exit_order_qty = self._order_qty_from_ls(ls)
+        _exit_oid = None  # track single order ID
+        _modify_attempts = 5
+
         for _ex_att in range(_exit_attempts):
             # Refresh LTP on each retry
             _fresh_ltp = price_store.get(ls.token) or _exit_ref_ltp
             if _fresh_ltp > 0:
                 _exit_ref_ltp = _fresh_ltp
-
             _buf = exit_buf if _ex_att == 0 else min(exit_buf + (_ex_att * 2.0), 15.0)
-            # Exit: use _order_qty (MCX=1, NSE/BSE=lot_size) not ls.qty (P&L qty)
-            _exit_order_qty = self._order_qty_from_ls(ls)
-            fill = self.om.execute(ls.token, ls.symbol, _exit_order_qty, side,
-                                   _exit_ref_ltp, exch, prod, f"{self.name[:8]}_X",
-                                   condition_price=0.0,
-                                   buf_pct=_buf)
-            if fill > 0:
-                break  # exit succeeded
-            # Exit failed — log and retry
-            err = self.broker.get_last_order_error() if hasattr(self.broker, "get_last_order_error") else ""
-            self.log.warning(
-                f"Exit order failed for {ls.opt_type} {fmt_sym(ls.symbol)} "
-                f"(attempt {_ex_att+1}/{_exit_attempts}): {err}")
-            if _ex_att < _exit_attempts - 1:
-                time.sleep(1)
+            _buf_abs = _exit_ref_ltp * (_buf / 100.0)
+            if side == "S":
+                _exit_price = max(round(_exit_ref_ltp - _buf_abs, 2), 0.05)
+            else:
+                _exit_price = round(_exit_ref_ltp + _buf_abs, 2)
 
-        if fill <= 0:
-            # Final attempt — MARKET order (AngelOne converts to limit with MPP)
-            self.log.warning(f"Trying MARKET order as final fallback for {fmt_sym(ls.symbol)}")
+            if _exit_oid is None:
+                # Place first order
+                _exit_oid = self.broker.place_order(exch, ls.symbol, _exit_order_qty,
+                                                    side, _exit_price, "L", prod,
+                                                    f"{self.name[:8]}_X")
+                if not _exit_oid:
+                    err = self.broker.get_last_order_error() if hasattr(self.broker, "get_last_order_error") else ""
+                    self.log.warning(f"Exit order failed attempt {_ex_att+1}: {err}")
+                    time.sleep(1)
+                    continue
+                self.log.info(f"Exit order placed: {_exit_oid} @ Rs {_exit_price:.2f}")
+            else:
+                # Modify existing order with wider price
+                modified = self.broker.modify_order(_exit_oid, _exit_price)
+                if modified:
+                    self.log.info(f"Exit order modified: {_exit_oid} → Rs {_exit_price:.2f}")
+                else:
+                    self.log.warning(f"Modify failed for {_exit_oid}")
+
+            # Wait 3 seconds then check if filled
+            time.sleep(3)
             try:
-                _mkt_qty = self._order_qty_from_ls(ls)
-                _mkt_side = "B" if ls.action == "SELL" else "S"
-                _exch = self._instr_info().get("exchange","NFO")
-                _prod = ls.prod if hasattr(ls,'prod') else "MIS"
-                fill = self.broker.place_order(_exch, ls.symbol, _mkt_qty, _mkt_side,
-                                               0, "M", _prod, f"{self.name[:8]}_XM")
-                if fill:
-                    ltp_now = price_store.get(ls.token) or ls.avg_entry
-                    self.log.info(f"MARKET exit placed for {fmt_sym(ls.symbol)}: {fill}")
-            except Exception as _me:
-                self.log.warning(f"MARKET exit also failed: {_me}")
-                fill = 0
+                _status = self.broker.get_order_status(_exit_oid)
+                if _status.get("status") == "COMPLETE":
+                    fill = float(_status.get("fill_price", _exit_price) or _exit_price)
+                    self.log.info(f"Exit filled @ Rs {fill:.2f}")
+                    break
+                elif _status.get("status") == "REJECTED":
+                    self.log.warning(f"Exit order rejected: {_status.get('reason','')}")
+                    _exit_oid = None  # place fresh order next attempt
+            except Exception as _se:
+                self.log.warning(f"Order status check failed: {_se}")
+
+        # Final fallback — MARKET order (AngelOne MPP)
+        if fill <= 0 and _exit_oid:
+            self.log.warning(f"All limit attempts failed — trying MARKET order")
+            try:
+                if hasattr(self.broker, 'cancel_order'):
+                    self.broker.cancel_order(_exit_oid)
+            except: pass
+            _mkt_oid = self.broker.place_order(exch, ls.symbol, _exit_order_qty,
+                                                side, 0, "M", prod, f"{self.name[:8]}_XM")
+            if _mkt_oid:
+                time.sleep(3)
+                try:
+                    _mkt_status = self.broker.get_order_status(_mkt_oid)
+                    if _mkt_status.get("status") == "COMPLETE":
+                        fill = float(_mkt_status.get("fill_price", _exit_ref_ltp) or _exit_ref_ltp)
+                        self.log.info(f"MARKET exit filled @ Rs {fill:.2f}")
+                except: pass
+
         if fill <= 0:
             ltp_now = price_store.get(ls.token) or ls.avg_entry
             ls.exit_failed = True   # flag for dashboard retry button
