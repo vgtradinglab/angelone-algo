@@ -711,7 +711,12 @@ def api_state():
             s2 = dict(s)
             trade_type = (s2.get("logic") or {}).get("tradeType", "Intraday")
             if trade_type != "Positional":
-                s2["status"] = "READY"
+                # Only reset to READY if no runner exists or runner never started
+                runner = engine_ref.runners.get(s2.get("id")) if engine_ref else None
+                if not runner or runner.status == "READY":
+                    s2["status"] = "READY"
+                else:
+                    s2["status"] = runner.status
             config_strats.append(s2)
     else:
         config_strats = raw_strats
