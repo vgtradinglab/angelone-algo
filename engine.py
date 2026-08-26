@@ -2697,10 +2697,11 @@ class StrategyRunner:
                 _exit_ref_ltp = _fresh_ltp
             _buf = exit_buf if _ex_att == 0 else min(exit_buf + (_ex_att * 2.0), 15.0)
             _buf_abs = _exit_ref_ltp * (_buf / 100.0)
+            # Round to tick size (5 paise = 0.05)
             if side == "S":
-                _exit_price = max(round(_exit_ref_ltp - _buf_abs, 2), 0.05)
+                _exit_price = max(round(round((_exit_ref_ltp - _buf_abs) / 0.05) * 0.05, 2), 0.05)
             else:
-                _exit_price = round(_exit_ref_ltp + _buf_abs, 2)
+                _exit_price = round(round((_exit_ref_ltp + _buf_abs) / 0.05) * 0.05, 2)
 
             if _exit_oid is None:
                 # Place first order
@@ -2720,6 +2721,7 @@ class StrategyRunner:
                     self.log.info(f"Exit order modified: {_exit_oid} → Rs {_exit_price:.2f}")
                 else:
                     self.log.warning(f"Modify failed for {_exit_oid}")
+                    _exit_oid = None  # place fresh order if modify fails
 
             # Wait 3 seconds then check if filled
             time.sleep(3)
