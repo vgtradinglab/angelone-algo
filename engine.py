@@ -1900,7 +1900,6 @@ class StrategyRunner:
                     _initial_signal = signal
                 # Only enter if signal changed from initial state
                 _signal_changed = (signal != _initial_signal)
-                _initial_signal = signal  # track last signal for change detection
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
