@@ -2710,6 +2710,22 @@ class StrategyRunner:
                 time.sleep(1)
 
         if fill <= 0:
+            # Final attempt — MARKET order (AngelOne converts to limit with MPP)
+            self.log.warning(f"Trying MARKET order as final fallback for {fmt_sym(ls.symbol)}")
+            try:
+                _mkt_qty = self._order_qty_from_ls(ls)
+                _mkt_side = "B" if ls.action == "SELL" else "S"
+                _exch = self._instr_info().get("exchange","NFO")
+                _prod = ls.prod if hasattr(ls,'prod') else "MIS"
+                fill = self.broker.place_order(_exch, ls.symbol, _mkt_qty, _mkt_side,
+                                               0, "M", _prod, f"{self.name[:8]}_XM")
+                if fill:
+                    ltp_now = price_store.get(ls.token) or ls.avg_entry
+                    self.log.info(f"MARKET exit placed for {fmt_sym(ls.symbol)}: {fill}")
+            except Exception as _me:
+                self.log.warning(f"MARKET exit also failed: {_me}")
+                fill = 0
+        if fill <= 0:
             ltp_now = price_store.get(ls.token) or ls.avg_entry
             ls.exit_failed = True   # flag for dashboard retry button
             ls.status = "OPEN"      # keep as OPEN so monitoring continues
