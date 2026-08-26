@@ -4692,10 +4692,8 @@ class Engine:
     def stop_strategy(self, sid: int):
         if sid in self.runners:
             self.runners[sid].force_exit()
-            # Remove runner so dashboard shows clean state
-            try:
-                del self.runners[sid]
-            except: pass
+            # Keep runner in dict so dashboard shows EXITED status
+            # Runner will be replaced when reactivated
 
     def exit_all_positions(self):
         """Exit all open positions without stopping the engine."""
