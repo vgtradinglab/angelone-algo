@@ -234,7 +234,7 @@ def refresh_instruments_from_broker(broker) -> None:
                 # Always use static MCX lot sizes — CSV value is unreliable (usually 1)
                 lot = MCX_LOT_SIZES.get(name, 1)
             else:
-                lot_sizes = [int(r.get("lot_size",0) or 0) for r in rows if r.get("lot_size")]
+                lot_sizes = [int(r.get("lot_size",0) or r.get("lotsize",0) or 0) for r in rows if r.get("lot_size") or r.get("lotsize")]
                 lot = max(set(lot_sizes), key=lot_sizes.count) if lot_sizes else 1
 
             # Tick size
