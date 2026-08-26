@@ -4099,7 +4099,8 @@ class Notifier:
         import hashlib, time as _time
         _trading_events = ("[RE-ENTRY]","[RE-COST]","[RE-EXECUTE]","[RB ENTRY]",
                            "[RB BREAKOUT]","[ENTRY]","[EXIT]","[LEG SL]","[LEG TP]",
-                           "[MTM SL]","[MTM TARGET]","[SQUAREOFF]","[HOLDING]","[RESUME]")
+                           "[MTM SL]","[MTM TARGET]","[SQUAREOFF]","[HOLDING]","[RESUME]",
+                           "[MANUAL EXIT]","[RESTART]")
         if any(k in text for k in _trading_events):
             msg_hash = hashlib.md5(text.encode()).hexdigest()
             now = _time.time()
