@@ -1892,7 +1892,9 @@ class StrategyRunner:
 
                 # Check all panels — ALL must confirm
                 all_confirmed = all(_get_signal_for_panel(p) for p in ind_panels)
-                signal = "ABOVE" if all_confirmed else None
+                # Use actual signal direction from first panel
+                _first_panel_sig = ind_panels[0].get("signal","ABOVE") if ind_panels else "ABOVE"
+                signal = _first_panel_sig if all_confirmed else None
                 # Record initial signal state on first check
                 if _initial_signal is None:
                     _initial_signal = signal
