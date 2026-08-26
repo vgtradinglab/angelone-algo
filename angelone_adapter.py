@@ -603,7 +603,7 @@ class AngelOneAdapter:
         try:
             import json, glob
             for path in glob.glob("/home/ubuntu/angelone-algo/candle_cache_*.json"):
-                sym = path.replace("/tmp/candle_cache_","").replace(".json","")
+                sym = path.replace("/home/ubuntu/angelone-algo/candle_cache_","").replace(".json","")
                 with open(path,"r") as f:
                     self._candle_cache[sym] = json.load(f)
             if self._candle_cache:
