@@ -157,7 +157,25 @@ def refresh_instruments_from_broker(broker) -> None:
         all_rows = (broker.get_all_fo_instruments()
                     if hasattr(broker, "get_all_fo_instruments")
                     else [])
+        # AngelOne fallback — read lot sizes directly from instrument cache
         if not all_rows:
+            try:
+                import json as _j
+                _cache = _j.load(open('/tmp/angelone_instruments_cache.json'))
+                _updated = 0
+                for _instr in list(INSTRUMENTS.keys()):
+                    _rows = [x for x in _cache if x.get('name','').upper()==_instr.upper()
+                             and x.get('instrumenttype','') in ('OPTIDX','OPTFUT','FUTIDX','FUTCOM','CE','PE')]
+                    if _rows:
+                        _lot = int(_rows[0].get('lotsize',0) or 0)
+                        if _lot > 0 and INSTRUMENTS[_instr].get('lot',0) != _lot:
+                            INSTRUMENTS[_instr]['lot'] = _lot
+                            _updated += 1
+                if _updated:
+                    _log.info(f"refresh_instruments_from_broker: updated {_updated} lot sizes from AngelOne cache")
+                    return
+            except Exception as _ae:
+                _log.warning(f"AngelOne lot size fallback error: {_ae}")
             _log.warning("refresh_instruments_from_broker: broker returned no rows; "
                          "keeping static fallback.")
             return
