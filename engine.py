@@ -1896,10 +1896,9 @@ class StrategyRunner:
                 _first_panel_sig = ind_panels[0].get("signal","ABOVE") if ind_panels else "ABOVE"
                 signal = _first_panel_sig if all_confirmed else None
                 # Record initial signal state on first check
-                if _initial_signal is None:
-                    _initial_signal = signal
                 # Only enter if signal changed from initial state
                 _signal_changed = (signal != _initial_signal)
+                _initial_signal = signal  # update for next candle
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
@@ -1912,7 +1911,6 @@ class StrategyRunner:
                 _candle_close = now.replace(minute=candle_ts,second=0,microsecond=0)
                 if signal and candle_ts != last_signal_candle and not _open_legs and _candle_close > _start_time and _signal_changed:
                     last_signal_candle = candle_ts
-                    _initial_signal = signal  # update so next change is detected
                     self.log.info(f"{self.name}: Signal={signal} — executing legs")
                     self.status = "RUNNING"
                     # Execute legs same as time based strategy
