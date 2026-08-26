@@ -719,7 +719,13 @@ def api_state():
                     s2["status"] = runner.status
             config_strats.append(s2)
     else:
-        config_strats = raw_strats
+        config_strats = []
+        for s in raw_strats:
+            s2 = dict(s)
+            runner = engine_ref.runners.get(s2.get("id")) if engine_ref else None
+            if runner:
+                s2["status"] = runner.status
+            config_strats.append(s2)
 
     return jsonify({
         "algo_started"      : engine_state.get("running", False),
