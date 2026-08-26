@@ -1548,17 +1548,9 @@ def api_restart_strategy(sid):
         try:
             from engine import StrategyRunner, OrderManager
             instr = s.get("idx","NIFTY")
-            # For indicator strategies - use existing chain
-            if s.get("indicator_config"):
-                chain = engine_ref._option_chains.get(instr, [])
-                om = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
-                import copy as _copy
-                new_runner = StrategyRunner(_copy.deepcopy(s), engine_ref.broker, om, engine_ref.notifier, engine_ref.dry_run)
-                engine_ref.runners[sid] = new_runner
-                import threading as _th2
-                t = _th2.Thread(target=new_runner.run, args=(chain,), name=f"Restart_{sid}", daemon=True)
-                engine_ref._threads[sid] = t
-                t.start()
+            # Use existing runner's request_restart() — same as Zerodha approach
+            if runner and hasattr(runner, 'request_restart'):
+                runner.request_restart()
                 add_log("RESTART", "MAIN", f"Strategy '{s["name"]}' restarted by user.")
                 return
             # For indicator strategies - use existing chain, no rebuild needed
