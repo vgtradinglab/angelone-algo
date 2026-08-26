@@ -4037,6 +4037,15 @@ class StrategyRunner:
         # Positional: clear saved state file since all positions are now closed
         if logic.get("tradeType","Intraday") == "Positional":
             self.clear_positional_state()
+        # If reactivate requested — reset state and restart
+        if self._restart_requested:
+            self._restart_requested = False
+            self.stopped = False
+            self.leg_states = []
+            self._closed_legs_history = []
+            if hasattr(self, "_closed_mtm"): del self._closed_mtm
+            self.log.info(f"{self.name}: Reactivated — restarting.")
+            self.run(option_chain)
 
 
 # ============================================================
