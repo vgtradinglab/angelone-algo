@@ -1895,15 +1895,41 @@ class StrategyRunner:
                 # Use actual signal direction from first panel
                 _first_panel_sig = ind_panels[0].get("signal","ABOVE") if ind_panels else "ABOVE"
                 signal = _first_panel_sig if all_confirmed else None
-                # Record initial signal state on first check
-                # Only enter if signal changed from initial state
-                if signal is not None:
-                    if _initial_signal is None:
-                        _initial_signal = signal  # record first non-None signal as baseline
-                        _signal_changed = False    # never enter on first signal
+                # Get raw signal from first panel for state tracking
+                _raw_sig = _get_signal_for_panel.__wrapped__(ind_panels[0]) if ind_panels else None
+                # Fallback: compute raw signal directly
+                try:
+                    _p0 = ind_panels[0]
+                    _ptype = _p0.get("type","EMA")
+                    _ptf = _p0.get("timeframe","5 Min")
+                    if _ptype == "EMA":
+                        from indicators.ema import get_signal as _gs
+                        _rs, _, _ = _gs(self.broker, exchange, _candle_sym, _ptf, length=int(_p0.get("length",9)))
+                    elif _ptype == "SuperTrend":
+                        from indicators.supertrend import get_signal as _gs
+                        _rs, _ = _gs(self.broker, exchange, _candle_sym, _ptf, length=int(_p0.get("length",10)), factor=float(_p0.get("factor",3)))
+                    elif _ptype == "RSI":
+                        from indicators.rsi import get_signal as _gs
+                        _rs, _ = _gs(self.broker, exchange, _candle_sym, _ptf, length=int(_p0.get("length",14)), upper=float(_p0.get("upper",70)), lower=float(_p0.get("lower",30)), use_middle=bool(_p0.get("use_middle",False)), middle=float(_p0.get("middle",50)))
+                    elif _ptype == "VWAP":
+                        from indicators.vwap import get_signal as _gs
+                        _rs, _ = _gs(self.broker, exchange, _candle_sym, _ptf)
+                    elif _ptype == "CPR":
+                        from indicators.cpr import get_signal as _gs
+                        _rs, _, _, _ = _gs(self.broker, exchange, _candle_sym, _ptf)
                     else:
-                        _signal_changed = (signal != _initial_signal)
-                        _initial_signal = signal  # track for next crossover
+                        _rs = None
+                    if _rs == "BUY": _rs = "ABOVE"
+                    elif _rs == "SELL": _rs = "BELOW"
+                except: _rs = None
+                # Track raw signal state for change detection
+                if _rs is not None:
+                    if _initial_signal is None:
+                        _initial_signal = _rs  # record first non-None raw signal as baseline
+                        _signal_changed = False  # never enter on first signal
+                    else:
+                        _signal_changed = (_rs != _initial_signal) and signal is not None
+                        _initial_signal = _rs  # track for next crossover
                 else:
                     _signal_changed = False
 
