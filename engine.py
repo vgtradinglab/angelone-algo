@@ -1897,12 +1897,15 @@ class StrategyRunner:
                 signal = _first_panel_sig if all_confirmed else None
                 # Record initial signal state on first check
                 # Only enter if signal changed from initial state
-                if _initial_signal is None:
-                    _initial_signal = signal  # record state at strategy start
-                    _signal_changed = False   # never enter on first check
+                if signal is not None:
+                    if _initial_signal is None:
+                        _initial_signal = signal  # record first non-None signal as baseline
+                        _signal_changed = False    # never enter on first signal
+                    else:
+                        _signal_changed = (signal != _initial_signal)
+                        _initial_signal = signal  # track for next crossover
                 else:
-                    _signal_changed = (signal != _initial_signal)
-                    _initial_signal = signal  # track for next crossover
+                    _signal_changed = False
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
