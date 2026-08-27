@@ -2736,6 +2736,11 @@ class StrategyRunner:
 
             if _exit_oid is None:
                 # Place first order
+                if self.dry_run:
+                    ltp_now = price_store.get(ls.token) or _exit_ref_ltp
+                    self.log.info(f"[DRY-RUN EXIT] {ls.opt_type} {fmt_sym(ls.symbol)} @ Rs {ltp_now:.2f}")
+                    fill = ltp_now
+                    break
                 _exit_oid = self.broker.place_order(exch, ls.symbol, _exit_order_qty,
                                                     side, _exit_price, "L", prod,
                                                     f"{self.name[:8]}_X")
@@ -2771,12 +2776,16 @@ class StrategyRunner:
         # Final fallback — MARKET order (AngelOne MPP)
         if fill <= 0 and _exit_oid:
             self.log.warning(f"All limit attempts failed — trying MARKET order")
-            try:
-                if hasattr(self.broker, 'cancel_order'):
-                    self.broker.cancel_order(_exit_oid)
-            except: pass
-            _mkt_oid = self.broker.place_order(exch, ls.symbol, _exit_order_qty,
-                                                side, 0, "M", prod, f"{self.name[:8]}_XM")
+            if self.dry_run:
+                fill = price_store.get(ls.token) or _exit_ref_ltp
+                self.log.info(f"[DRY-RUN MARKET EXIT] {fmt_sym(ls.symbol)} @ Rs {fill:.2f}")
+            else:
+                try:
+                    if hasattr(self.broker, 'cancel_order'):
+                        self.broker.cancel_order(_exit_oid)
+                except: pass
+                _mkt_oid = self.broker.place_order(exch, ls.symbol, _exit_order_qty,
+                                                    side, 0, "M", prod, f"{self.name[:8]}_XM")
             if _mkt_oid:
                 time.sleep(3)
                 try:
