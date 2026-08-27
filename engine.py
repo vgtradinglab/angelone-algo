@@ -1896,8 +1896,7 @@ class StrategyRunner:
                 _first_panel_sig = ind_panels[0].get("signal","ABOVE") if ind_panels else "ABOVE"
                 signal = _first_panel_sig if all_confirmed else None
                 # Get raw signal from first panel for state tracking
-                _raw_sig = _get_signal_for_panel.__wrapped__(ind_panels[0]) if ind_panels else None
-                # Fallback: compute raw signal directly
+                # Compute raw signal directly
                 try:
                     _p0 = ind_panels[0]
                     _ptype = _p0.get("type","EMA")
