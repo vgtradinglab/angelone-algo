@@ -272,6 +272,19 @@ PNL_FILE = "pnl_history.json"
 
 
 
+import signal as _signal
+def _sigterm_handler(sig, frame):
+    """Save candle cache on shutdown before exiting."""
+    try:
+        if engine_ref and engine_ref.broker and hasattr(engine_ref.broker, 'save_candle_cache'):
+            engine_ref.broker.save_candle_cache()
+            _log.info("SIGTERM: candle cache saved before shutdown.")
+    except Exception as _e:
+        _log.warning(f"SIGTERM: candle save error: {_e}")
+    import sys as _sys
+    _sys.exit(0)
+_signal.signal(_signal.SIGTERM, _sigterm_handler)
+
 def midnight_reset():
     global trade_log, pnl_history, _session_active
     # Reset engine running flag on midnight reset — prevents stuck state
