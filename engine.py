@@ -2569,7 +2569,7 @@ class StrategyRunner:
             if ref_ltp <= 0:
                 self.log.warning(f"Cannot enter {fmt_sym(sym)} — LTP=0 after all retries. "
                                  f"Market may be closed or feed unavailable. Skipping entry.")
-                return None, None, 0.0  # ← abort entry cleanly
+                return None  # ← abort entry cleanly
 
         pnl_qty   = self._qty(leg)        # for P&L calculation (actual lot size)
         order_qty = self._order_qty(leg)   # for Zerodha API (MCX=1, NSE/BSE=lot_size)
