@@ -1810,6 +1810,8 @@ class StrategyRunner:
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
         _initial_signal = None  # signal state at strategy start
+        _pending_signal = None  # signal from previous candle — confirmed next candle open
+        _pending_candle_ts = None  # candle timestamp of pending signal
         _start_time = _dt.now(IST)  # datetime when strategy started
 
         while not self.stopped:
@@ -1921,17 +1923,19 @@ class StrategyRunner:
                     if _rs == "BUY": _rs = "ABOVE"
                     elif _rs == "SELL": _rs = "BELOW"
                 except: _rs = None
-                # Track raw signal state for change detection
-                # Only enter on fresh crossover — not stale signal
-                if _rs is not None:
-                    if _initial_signal is None:
-                        _initial_signal = _rs
-                        _signal_changed = False
-                    else:
-                        _signal_changed = (_rs != _initial_signal) and signal is not None
-                        _initial_signal = _rs
-                else:
-                    _signal_changed = False
+                # Two-candle confirmation logic:
+                # 1. Signal detected at candle close → store as pending
+                # 2. Next candle open → if same signal still valid → enter
+                _signal_changed = False
+                if signal is not None and candle_ts != _pending_candle_ts:
+                    # New candle — check if pending signal matches current signal
+                    if _pending_signal is not None and _pending_signal == signal:
+                        _signal_changed = True  # confirmed — enter now
+                    # Store current signal as pending for next candle
+                    _pending_signal = signal
+                    _pending_candle_ts = candle_ts
+                elif signal is None:
+                    _pending_signal = None  # signal gone — reset pending
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
