@@ -1219,13 +1219,19 @@ def api_save_strategy():
             # The runner already has old chain + old WebSocket subscriptions.
             # User must stop and restart for instrument change to take effect.
             if old_idx and new_idx and old_idx != new_idx:
-                _log.warning(
-                    f"Config save: instrument changed {old_idx} → {new_idx} "
-                    f"while strategy '{s.get('name','')}' is running. "
-                    f"Config saved to disk. Stop and restart strategy for change to take effect.")
-                # Save config to disk (already done above) but do NOT update runner
-                # The runner keeps running with old instrument until restarted
-                pass
+                _log.info(f"Config save: instrument changed {old_idx} → {new_idx} for '{s.get('name','')}' — auto-restarting")
+                # Auto-restart runner with new instrument and fresh option chain
+                runner_existing.force_exit()
+                runner_existing.s = s
+                new_chain = engine_ref._option_chains.get(new_idx, [])
+                import threading as _th2, copy as _cp2
+                from engine import StrategyRunner, OrderManager
+                om2 = OrderManager(engine_ref.broker, engine_ref.dry_run, config_ref, notifier=engine_ref.notifier)
+                new_runner = StrategyRunner(_cp2.deepcopy(s), engine_ref.broker, om2, engine_ref.notifier, engine_ref.dry_run, config=engine_ref.config, siblings=engine_ref.runners)
+                engine_ref.runners[s["id"]] = new_runner
+                t2 = _th2.Thread(target=new_runner.run, args=(new_chain,), name=f"Strat_{s['id']}", daemon=True)
+                engine_ref._threads[s["id"]] = t2
+                t2.start()
             else:
                 # Same instrument — safe to hot-reload config in-place
                 runner_existing.s = s
