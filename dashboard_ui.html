@@ -4502,7 +4502,7 @@ function _getFullIndConfig(){
     signal:indSigEl?indSigEl.value:'ABOVE',
     upper:indUpEl?parseFloat(indUpEl.value)||70:70,
     lower:indLoEl?parseFloat(indLoEl.value)||30:30,
-    use_middle:useMid,middle:50
+    use_middle:false,middle:50
   };
   // Combine primary + extra — deep copy to prevent cross-strategy contamination
   var all=[primary].concat(JSON.parse(JSON.stringify(_indExtra)));
