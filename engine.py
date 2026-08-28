@@ -1922,15 +1922,8 @@ class StrategyRunner:
                     elif _rs == "SELL": _rs = "BELOW"
                 except: _rs = None
                 # Track raw signal state for change detection
-                if _rs is not None:
-                    if _initial_signal is None:
-                        _initial_signal = _rs  # record first non-None raw signal as baseline
-                        _signal_changed = False  # never enter on first signal
-                    else:
-                        _signal_changed = (_rs != _initial_signal) and signal is not None
-                        _initial_signal = _rs  # track for next crossover
-                else:
-                    _signal_changed = False
+                # Enter on any signal — indicators handle stale check via prev/curr candle
+                _signal_changed = signal is not None
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
@@ -1979,8 +1972,23 @@ class StrategyRunner:
                     self.notify.telegram(f"⚠️ [ERROR] | {self.name}\nIndicator runner error: {e}")
                 except: pass
 
-            # Wait for next candle close check — every 30 seconds
-            _time.sleep(30)
+            # Wait until next candle close — aligned to timeframe
+            _now2 = _dt.now(IST)
+            _mins = INTERVAL_MINUTES.get(timeframe, 5) if 'INTERVAL_MINUTES' in dir() else 5
+            try:
+                from indicators.base import INTERVAL_MINUTES as _IM
+                _mins = _IM.get(timeframe, 5)
+            except: pass
+            _secs_in_candle = _mins * 60
+            _elapsed = (_now2.minute % _mins) * 60 + _now2.second
+            _sleep = _secs_in_candle - _elapsed
+            if _sleep <= 0 or _sleep > _secs_in_candle:
+                _sleep = _secs_in_candle
+            # Sleep in small chunks so stopped flag is checked
+            _slept = 0
+            while _slept < _sleep and not self.stopped:
+                _time.sleep(min(5, _sleep - _slept))
+                _slept += 5
 
     def _positional_state_path(self) -> str:
         import os
