@@ -1922,8 +1922,16 @@ class StrategyRunner:
                     elif _rs == "SELL": _rs = "BELOW"
                 except: _rs = None
                 # Track raw signal state for change detection
-                # Enter on any signal — indicators handle stale check via prev/curr candle
-                _signal_changed = signal is not None
+                # Only enter on fresh crossover — not stale signal
+                if _rs is not None:
+                    if _initial_signal is None:
+                        _initial_signal = _rs
+                        _signal_changed = False
+                    else:
+                        _signal_changed = (_rs != _initial_signal) and signal is not None
+                        _initial_signal = _rs
+                else:
+                    _signal_changed = False
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
