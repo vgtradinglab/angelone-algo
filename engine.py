@@ -1924,18 +1924,9 @@ class StrategyRunner:
                     elif _rs == "SELL": _rs = "BELOW"
                 except: _rs = None
                 # Two-candle confirmation logic:
-                # 1. Signal detected at candle close → store as pending
-                # 2. Next candle open → if same signal still valid → enter
-                _signal_changed = False
-                if signal is not None and candle_ts != _pending_candle_ts:
-                    # New candle — check if pending signal matches current signal
-                    if _pending_signal is not None and _pending_signal == signal:
-                        _signal_changed = True  # confirmed — enter now
-                    # Store current signal as pending for next candle
-                    _pending_signal = signal
-                    _pending_candle_ts = candle_ts
-                elif signal is None:
-                    _pending_signal = None  # signal gone — reset pending
+                # Indicators already confirm 2-candle crossover internally
+                # Enter immediately when signal fires at candle close
+                _signal_changed = signal is not None
 
                 # Get candle timestamp from first panel
                 from indicators.base import INTERVAL_MINUTES
