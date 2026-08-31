@@ -3104,10 +3104,11 @@ class StrategyRunner:
         # If saved state exists from a previous session, reload legs and
         # skip entry logic for today (already in the market).
         _restored_from_disk = False
-        if is_positional or self.s.get("_indicator_handover"):
+        if is_positional:
             _restored_from_disk = self.load_positional_state()
-            # Clear handover flag after loading
-            self.s.pop("_indicator_handover", None)
+        # Indicator handover — skip entry, go directly to monitoring
+        if getattr(self, "_ind_monitoring", False):
+            _restored_from_disk = True
             if _restored_from_disk:
                 # Positions loaded. Check BTST next-day exit conditions.
                 is_btst_r = self.s.get("logic",{}).get("btst",{}).get("type","") in ("BTST","STBT")
