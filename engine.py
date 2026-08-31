@@ -1968,7 +1968,7 @@ class StrategyRunner:
                             pass
                         # ── Hand over to full monitoring loop (same as time-based) ──
                         self.stopped = False
-                        self.run(option_chain, _skip_to_monitor=True)
+                        self.run(option_chain)
                         # After monitoring exits — reset for next signal
                         self.stopped = False
                         self.status = "READY"
@@ -3038,12 +3038,6 @@ class StrategyRunner:
         instr     = self.s.get("idx","NIFTY")
         start_t   = logic.get("startTime","09:20:00")
         end_t     = logic.get("endTime","23:00:00" if INSTRUMENTS.get(instr,{}).get("is_mcx") else "15:15:00")
-        # Skip entry block — jump directly to monitoring (called from indicator runner)
-        if _skip_to_monitor:
-            import goto as _goto  # noqa — handled below via flag
-            _goto_monitor = True
-        else:
-            _goto_monitor = False
 
         # ── Multiplier scaling ────────────────────────────────────
         # MTM SL, MTM Target and Protect Profit values are entered
