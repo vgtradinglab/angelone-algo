@@ -1972,10 +1972,14 @@ class StrategyRunner:
                         _orig_type = self.s.get("stratType","indicator")
                         self.s["stratType"] = "time"
                         self.run(option_chain)
-                        # After monitoring exits — reset for next signal
+                        # After monitoring exits — check if strategy was closed/exited
                         self.s["stratType"] = _orig_type
                         self._ind_monitoring = False
                         self.stopped = False
+                        if self.status in ("CLOSED", "EXITED", "DISABLED"):
+                            # Strategy exited — stop signal detection loop
+                            return
+                        # Position exited normally — wait for next signal
                         self.status = "READY"
                         last_signal_candle = None
 
