@@ -3109,7 +3109,8 @@ class StrategyRunner:
         # Indicator handover — skip entry, go directly to monitoring
         if getattr(self, "_ind_monitoring", False):
             _restored_from_disk = True
-            if _restored_from_disk:
+        if _restored_from_disk and not getattr(self, "_ind_monitoring", False):
+            if True:
                 # Positions loaded. Check BTST next-day exit conditions.
                 is_btst_r = self.s.get("logic",{}).get("btst",{}).get("type","") in ("BTST","STBT")
                 btst_cfg_r = self.s.get("logic",{}).get("btst",{}) if is_btst_r else {}
