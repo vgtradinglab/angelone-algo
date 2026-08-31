@@ -1966,6 +1966,78 @@ class StrategyRunner:
                             self.notify.telegram(_msg)
                         except Exception as _te:
                             pass
+                        # ── Monitor open legs for SL/TP/MTM/end time ──
+                        _monitor_active = True
+                        while _monitor_active and not self.stopped:
+                            _now_m = _dt.now(IST)
+                            _now_s = _now_m.strftime("%H:%M:%S")
+                            # End time check
+                            if _now_s >= end_t:
+                                self._exit_all("End time reached")
+                                self.status = "EXITED"
+                                self.log.info(f"{self.name}: End time reached — stopping.")
+                                return
+                            # Check open legs
+                            _open = [ls for ls in self.leg_states if ls.status == "OPEN"]
+                            if not _open:
+                                self.status = "READY"
+                                last_signal_candle = None
+                                _monitor_active = False
+                                break
+                            # Per-leg SL/TP
+                            for ls in list(self.leg_states):
+                                if ls.status != "OPEN": continue
+                                ot = ls.opt_type
+                                if self._should_exit_sl(ls):
+                                    fill = self._exit_leg(ls, f"{ot} SL")
+                                    mtm  = self.compute_total_pnl()
+                                    mode = "PAPER" if self.dry_run else "LIVE"
+                                    self.notify.telegram(f"[LEG SL] | {self.name} [{mode}]\n{ot} SL HIT\nStrike: {fmt_sym(ls.symbol)}\nEntry: Rs {ls.avg_entry:.0f} Exit: Rs {fill:.0f}\nMTM: Rs {mtm:.0f}")
+                                elif self._should_exit_tp(ls):
+                                    fill = self._exit_leg(ls, f"{ot} TP")
+                                    mtm  = self.compute_total_pnl()
+                                    mode = "PAPER" if self.dry_run else "LIVE"
+                                    self.notify.telegram(f"[LEG TP] | {self.name} [{mode}]\n{ot} TARGET HIT\nStrike: {fmt_sym(ls.symbol)}\nEntry: Rs {ls.avg_entry:.0f} Exit: Rs {fill:.0f}\nMTM: Rs {mtm:.0f}")
+                            # MTM SL/Target
+                            _mtm = self.compute_total_pnl()
+                            _lg  = self.s.get("logic", {})
+                            _mtm_sl  = float(_lg.get("mtmSL", 0) or 0)
+                            _mtm_tgt = float(_lg.get("mtmTarget", 0) or 0)
+                            if _mtm_sl > 0 and _mtm <= -_mtm_sl:
+                                self._exit_all(f"MTM SL hit Rs {_mtm:.0f}")
+                                self.notify.telegram(f"[MTM SL] | {self.name}\nMTM SL hit: Rs {_mtm:.0f}")
+                                self.status = "READY"
+                                last_signal_candle = None
+                                _monitor_active = False
+                                break
+                            if _mtm_tgt > 0 and _mtm >= _mtm_tgt:
+                                self._exit_all(f"MTM Target hit Rs {_mtm:.0f}")
+                                self.notify.telegram(f"[MTM TARGET] | {self.name}\nMTM Target hit: Rs {_mtm:.0f}")
+                                self.status = "READY"
+                                last_signal_candle = None
+                                _monitor_active = False
+                                break
+                            # Opposite signal check (only if no SL/TP/MTM set)
+                            _has_sl  = any(float(l.get("sl",0) or 0) > 0 for l in self.s.get("legs",[]))
+                            _has_tp  = any(float(l.get("tp",0) or 0) > 0 for l in self.s.get("legs",[]))
+                            if not _has_sl and not _has_tp and not _mtm_sl and not _mtm_tgt:
+                                _now_ts = (_now_m.minute // mins) * mins
+                                if _now_ts != last_signal_candle:
+                                    try:
+                                        _opp_sig = "BELOW" if signal == "ABOVE" else "ABOVE"
+                                        _opp_confirmed = all(
+                                            _get_signal_for_panel({**p, "signal": _opp_sig})
+                                            for p in ind_panels
+                                        )
+                                        if _opp_confirmed:
+                                            self._exit_all("Opposite crossover")
+                                            self.notify.telegram(f"[EXIT] | {self.name}\nOpposite signal crossover — exiting")
+                                            self.status = "READY"
+                                            last_signal_candle = None
+                                            _monitor_active = False
+                                            break
+                                    except: pass
+                            _time.sleep(5)
 
             except Exception as e:
                 self.log.error(f"{self.name}: Indicator runner error: {e}")
