@@ -1966,10 +1966,15 @@ class StrategyRunner:
                             self.notify.telegram(_msg)
                         except Exception as _te:
                             pass
-                        # ── Hand over to full monitoring loop (same as time-based) ──
+                        # ── Hand over to time-based monitoring loop ──
+                        self._ind_monitoring = True
                         self.stopped = False
+                        _orig_type = self.s.get("stratType","indicator")
+                        self.s["stratType"] = "time"
                         self.run(option_chain)
                         # After monitoring exits — reset for next signal
+                        self.s["stratType"] = _orig_type
+                        self._ind_monitoring = False
                         self.stopped = False
                         self.status = "READY"
                         last_signal_candle = None
