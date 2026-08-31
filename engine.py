@@ -1810,8 +1810,6 @@ class StrategyRunner:
 
         last_signal_candle = None  # track last candle we acted on — avoid duplicate signals
         _initial_signal = None  # signal state at strategy start
-        _pending_signal = None  # signal from previous candle — confirmed next candle open
-        _pending_candle_ts = None  # candle timestamp of pending signal
         _start_time = _dt.now(IST)  # datetime when strategy started
 
         while not self.stopped:
