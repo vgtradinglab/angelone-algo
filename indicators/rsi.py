@@ -38,6 +38,11 @@ def get_signal(broker, exchange, symbol, timeframe,
     """
     try:
         candles = get_candles(broker, exchange, symbol, timeframe, num_candles=length+2)
+        # Filter to today's session only — RSI should not use previous day candles
+        from datetime import datetime, date
+        _today = date.today()
+        _market_open_ts = int(datetime(_today.year, _today.month, _today.day, 9, 0).timestamp())
+        candles = [c for c in candles if c[0] >= _market_open_ts]
         if len(candles) < length + 2:
             return None, None
         closes   = [c[4] for c in candles]
