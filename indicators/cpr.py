@@ -20,11 +20,18 @@ def calculate_cpr(broker, exchange, symbol):
         import time as _time
         candles_5m = broker.get_candles(exchange, symbol, "FIVE_MINUTE", "", "")
         if candles_5m:
-            # Get today's date start timestamp
             from datetime import date
-            today_start = datetime.combine(date.today(), datetime.min.time()).timestamp()
-            # Filter yesterday's candles (before today)
-            prev_candles = [c for c in candles_5m if c[0] < today_start]
+            today = date.today()
+            today_open_ts = datetime(today.year, today.month, today.day, 9, 0).timestamp()
+            # Find last trading day — skip weekends
+            prev_day = today - timedelta(days=1)
+            for _ in range(7):
+                if prev_day.weekday() < 5:
+                    break
+                prev_day -= timedelta(days=1)
+            prev_open_ts = datetime(prev_day.year, prev_day.month, prev_day.day, 9, 0).timestamp()
+            # Filter only last trading day candles
+            prev_candles = [c for c in candles_5m if prev_open_ts <= c[0] < today_open_ts]
             if prev_candles:
                 prev_high  = max(c[2] for c in prev_candles)
                 prev_low   = min(c[3] for c in prev_candles)
