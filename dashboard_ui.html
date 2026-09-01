@@ -2663,35 +2663,6 @@ var RM_STRATS = [
          {action:'BUY',type:'PE',strike:'ATM-100',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'CE',strike:'ATM+200',sl:0,slU:'%',tp:0,tpU:'%'},
          {action:'SELL',type:'PE',strike:'ATM-200',sl:0,slU:'%',tp:0,tpU:'%'}]},
-
-  {id:'admin_s1', name:'Strategy 1', is_admin:true,
-   svg:'<polyline points="0,28 15,28 25,10 35,20 45,10 60,28" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
-   logic:{idx:'SENSEX',startTime:'09:16:00',endTime:'10:34:00',mtmSL:3000},
-   legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:10,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
-         {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:10,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-
-  {id:'admin_s2', name:'Strategy 2', is_admin:true,
-   svg:'<polyline points="0,20 15,10 30,28 45,10 60,20" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
-   logic:{idx:'SENSEX',startTime:'09:18:00',endTime:'11:59:00',mtmSL:4000},
-   legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:10,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
-         {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:10,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-
-  {id:'admin_s3', name:'Strategy 3', is_admin:true,
-   svg:'<polyline points="0,10 20,28 40,10 60,28" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
-   logic:{idx:'SENSEX',startTime:'09:45:00',endTime:'15:09:00',mtmSL:4000},
-   legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
-         {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-
-  {id:'admin_s4', name:'Strategy 4', is_admin:true,
-   svg:'<polyline points="0,28 20,10 40,28 60,10" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
-   logic:{idx:'SENSEX',startTime:'10:35:00',endTime:'15:09:00',mtmSL:4000},
-   legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
-         {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
-  {id:'admin_s5', name:'Strategy 5', is_admin:true,
-   svg:'<polyline points="0,20 15,28 30,10 45,28 60,20" stroke="#4fc3f7" stroke-width="2" fill="rgba(79,195,247,0.07)"/>',
-   logic:{idx:'SENSEX',startTime:'12:00:00',endTime:'15:09:00',mtmSL:4000},
-   legs:[{action:'SELL',prod:'MIS',type:'CE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'},
-         {action:'SELL',prod:'MIS',type:'PE',stType:'Premium <=',premVal:250,sl:20,slU:'%',tp:0,tpU:'%',resl:4,rentryType:'Re-Entry',expiry:'Weekly'}]},
 ];;
 
 function renderRmGrid(){
