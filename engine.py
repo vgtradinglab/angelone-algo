@@ -3118,6 +3118,9 @@ class StrategyRunner:
         # Indicator handover — skip entry, go directly to monitoring
         if getattr(self, "_ind_monitoring", False):
             _restored_from_disk = True
+            # Initialize MTM SL/Target with multiplier scaling for indicator handover
+            mtm_sl  = _scaled_mtm("mtmSL",     "mtmSLType")
+            mtm_tgt = _scaled_mtm("mtmTarget", "mtmTType")
         if _restored_from_disk and not getattr(self, "_ind_monitoring", False):
             if True:
                 # Positions loaded. Check BTST next-day exit conditions.
