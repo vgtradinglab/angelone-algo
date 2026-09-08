@@ -4158,6 +4158,7 @@ class StrategyRunner:
 
                 if basket_sl > 0 and portfolio_pnl <= -basket_sl:
                     self.config[_pbreach_key] = False  # reset on successful exit
+                    self.config["basket_sl"] = 0  # reset so user can reactivate
                     self._exit_all("Portfolio SL hit")
                     self.status = "CLOSED"; self.stopped = True
                     mode = "PAPER" if self.dry_run else "LIVE"
@@ -4168,6 +4169,7 @@ class StrategyRunner:
                         f"ACTION        : EXIT ALL legs in this strategy")
                     break
                 if basket_tgt > 0 and portfolio_pnl >= basket_tgt:
+                    self.config["basket_target"] = 0  # reset so user can reactivate
                     self._exit_all("Portfolio Target hit")
                     self.status = "CLOSED"; self.stopped = True
                     mode = "PAPER" if self.dry_run else "LIVE"
