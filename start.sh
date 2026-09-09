@@ -104,4 +104,4 @@ echo "   Press Ctrl+C to stop the bot."
 echo " ============================================"
 echo ""
 
-authbind --deep python3 run.py
+python3 run.py

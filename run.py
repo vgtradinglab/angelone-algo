@@ -45,7 +45,7 @@ def rotate_logs():
 # ── Default config (written to config.json if not exists) ─────
 DEFAULT_CONFIG = {
     "dry_run"   : True,
-    "port"      : 80,
+    "port"      : 5000,
     "broker"    : "angelone",
     "server_ip" : "",
     "broker_creds": {
