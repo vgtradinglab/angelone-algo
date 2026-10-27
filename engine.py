@@ -722,6 +722,11 @@ def fmt_sym(raw: str) -> str:
     return s
 
 
+
+def _mcx_strike_window(instr: str) -> int:
+    """Strikes each side of ATM to subscribe. Crude = all strikes, others = 20."""
+    return 10000 if str(instr).upper() in ("CRUDEOIL", "CRUDEOILM") else 20
+
 def resolve_strike(leg: dict, instrument: str, option_chain: list) -> tuple:
     """
     Resolve leg strike selection → (token, trading_symbol, ref_ltp).
@@ -4630,8 +4635,8 @@ class Engine:
                     # Find ATM index and slice ±20
                     _atm_idx = min(range(len(_strikes)),
                                    key=lambda i: abs(_strikes[i] - _atm))
-                    _lo_idx  = max(0, _atm_idx - 20)
-                    _hi_idx  = min(len(_strikes) - 1, _atm_idx + 20)
+                    _lo_idx  = max(0, _atm_idx - _mcx_strike_window(instr))
+                    _hi_idx  = min(len(_strikes) - 1, _atm_idx + _mcx_strike_window(instr))
                     _lo_strike = _strikes[_lo_idx]
                     _hi_strike = _strikes[_hi_idx]
                     sub_chain = [c for c in chain
@@ -4776,8 +4781,8 @@ class Engine:
                 if not _strikes2: continue
                 _atm_idx2 = min(range(len(_strikes2)),
                                 key=lambda i: abs(_strikes2[i] - _atm2))
-                _lo_idx2  = max(0, _atm_idx2 - 20)
-                _hi_idx2  = min(len(_strikes2) - 1, _atm_idx2 + 20)
+                _lo_idx2  = max(0, _atm_idx2 - _mcx_strike_window(instr_name))
+                _hi_idx2  = min(len(_strikes2) - 1, _atm_idx2 + _mcx_strike_window(instr_name))
                 _lo_strike2 = _strikes2[_lo_idx2]
                 _hi_strike2 = _strikes2[_hi_idx2]
                 # Find tokens outside ATM±20 range (exclude FUT)

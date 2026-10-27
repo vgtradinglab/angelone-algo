@@ -1485,7 +1485,7 @@ def api_toggle_strategy(sid):
                                             break
                                 engine_ref._option_chains[instr] = chain
                             # Apply MCX ±20 strike filter before subscribing
-                            from engine import get_atm_strike, price_store as _ps
+                            from engine import get_atm_strike, price_store as _ps, _mcx_strike_window
                             sub_chain = chain
                             if info.get("is_mcx") and chain:
                                 # Try REST LTP for futures to get ATM before WebSocket
@@ -1505,8 +1505,8 @@ def api_toggle_strategy(sid):
                                 if _atm > 0:
                                     _strikes = sorted(set(float(c.get("strike",0) or 0) for c in chain if c.get("strike")))
                                     _atm_idx = min(range(len(_strikes)), key=lambda i: abs(_strikes[i]-_atm))
-                                    _lo = _strikes[max(0,_atm_idx-20)]
-                                    _hi = _strikes[min(len(_strikes)-1,_atm_idx+20)]
+                                    _lo = _strikes[max(0,_atm_idx-_mcx_strike_window(instr))]
+                                    _hi = _strikes[min(len(_strikes)-1,_atm_idx+_mcx_strike_window(instr))]
                                     sub_chain = [c for c in chain if c.get("instrument_type","").upper()=="FUT" or (_lo<=float(c.get("strike",0) or 0)<=_hi)]
                             # Subscribe tokens first
                             opt_toks=[]; idx_toks=[]
