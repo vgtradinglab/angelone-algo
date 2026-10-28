@@ -16,6 +16,11 @@ import threading as _threading
 _CANDLE_LOCK = _threading.Lock()
 _CANDLE_LAST_TS = [0.0]  # shared across all instances
 
+# Shared order-book cache (one download for all threads)
+_OB_LOCK = threading.Lock()
+_OB_CACHE = {'t': 0.0, 'data': None}
+_OB_FINAL = {}
+
 class AngelOneAdapter:
     name = "Angel One"
 
@@ -442,19 +447,48 @@ class AngelOneAdapter:
             _log.error(f"[AngelOne] place_order error: {e}")
             return ""
 
-    def get_order_status(self,order_id):
+    def _shared_order_book(self):
+        # ONE shared order-book download for all threads (AngelOne allows about 1 per second)
+        with _OB_LOCK:
+            if _OB_CACHE["data"] is not None and (time.time() - _OB_CACHE["t"]) < 1.1:
+                return _OB_CACHE["data"]
+            for _try in range(2):
+                try:
+                    r = self._smart_api.orderBook()
+                    if r and r.get("status") != False:
+                        _OB_CACHE["data"] = r.get("data") or []
+                        _OB_CACHE["t"] = time.time()
+                        return _OB_CACHE["data"]
+                except Exception as e:
+                    _log.error(f"[AngelOne] order book fetch error (try {_try+1}/2): {e}")
+                if _try == 0:
+                    time.sleep(1.2)
+            return None
+
+    def get_order_status(self, order_id):
+        oid = str(order_id)
+        fin = _OB_FINAL.get(oid)
+        if fin:
+            return dict(fin)
         try:
-            r=self._smart_api.orderBook()
-            if r and r.get("status")!=False:
-                for o in (r.get("data") or []):
-                    if str(o.get("orderid",""))==str(order_id):
-                        s=o.get("orderstatus","").upper()
-                        fp=float(o.get("averageprice",0) or 0)
-                        if s=="COMPLETE": return {"status":"COMPLETE","fill_price":fp,"reason":""}
-                        if s in ("REJECTED","CANCELLED"): return {"status":"REJECTED","fill_price":0.0,"reason":o.get("text","")}
-                        return {"status":"PENDING","fill_price":0.0,"reason":""}
-        except Exception as e: _log.error(f"[AngelOne] get_order_status error: {e}")
-        return {"status":"PENDING","fill_price":0.0,"reason":""}
+            rows = self._shared_order_book()
+            for o in (rows or []):
+                if str(o.get("orderid", "")) == oid:
+                    s = o.get("orderstatus", "").upper()
+                    fp = float(o.get("averageprice", 0) or 0)
+                    if s == "COMPLETE":
+                        res = {"status": "COMPLETE", "fill_price": fp, "reason": ""}
+                        if fp > 0:
+                            _OB_FINAL[oid] = res
+                        return dict(res)
+                    if s in ("REJECTED", "CANCELLED"):
+                        res = {"status": "REJECTED", "fill_price": 0.0, "reason": o.get("text", "")}
+                        _OB_FINAL[oid] = res
+                        return dict(res)
+                    return {"status": "PENDING", "fill_price": 0.0, "reason": ""}
+        except Exception as e:
+            _log.error(f"[AngelOne] get_order_status error: {e}")
+        return {"status": "PENDING", "fill_price": 0.0, "reason": ""}
 
     def cancel_order(self,order_id):
         try:
@@ -486,11 +520,8 @@ class AngelOneAdapter:
         return []
 
     def get_order_book(self):
-        try:
-            r=self._smart_api.orderBook()
-            if r and r.get("status")!=False: return r.get("data") or []
-        except Exception as e: _log.error(f"[AngelOne] get_order_book error: {e}")
-        return []
+        rows = self._shared_order_book()
+        return list(rows) if rows else []
 
     def get_trade_book(self):
         try:
@@ -649,7 +680,7 @@ class AngelOneAdapter:
                     "instrumenttype" : info.get("instrumenttype",""),
                     "lot_size"       : int(info.get("lotsize",1) or 1),
                     "lotsize"        : int(info.get("lotsize",1) or 1),
-                    "tick_size"      : float(info.get("tick_size",0.05) or 0.05),
+                    "tick_size"      : float(info.get("tick_size",5) or 5)/100.0,
                     "expiry"         : info.get("expiry",""),
                     "strike"         : float(info.get("strike",0) or 0)/100,
                     "instrument_token": info.get("token",""),
